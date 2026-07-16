@@ -1,41 +1,39 @@
-# Marky’s Pizza and Pies
+# Marco's Pizza Club 🍕
 
-A clean, educational Progressive Web App for learning to make excellent pizza (and later pies) from scratch at home.
+> Learn it. Stretch it. Bake it.
 
-**V1 Focus**: Pizza only — practical personal (20-25 cm) and sharing (3-4 people) sizes. Science-first but approachable flavour interactions, moisture management, and home-oven protocols using standard convection or common multi-function microwave/combi ovens.
+A playful, science-first Progressive Web App that teaches you to make excellent pizza in a normal home oven — hosted on GitHub Pages and installable on your phone.
 
-**Key Features in V1**
-- Guided "Pizza Essentials" curriculum with progress tracking
-- Interactive Pizza Builder with real-time flavour science feedback
-- Signature cook-along recipes with step timers
-- Practical Bake Guide with convection vs multi-function oven protocols + home oven enhancements (baking steel / metal plate, pizza stone, etc.)
-- Personal Journal for saved builds and experiment notes (localStorage + export backup)
-- Beautiful "Coming Soon" for Pies section
+**Live app:** https://marcustayye93.github.io/Marky-s-Pizza/
 
-**Tech**
-- Vanilla JavaScript PWA (no framework)
-- Service worker for offline use
-- Fully installable on mobile/desktop
-- Designed for GitHub Pages deployment
+## What's inside
 
-**Visual Direction**
-Clean, bright Italian-kitchen aesthetic. All key imagery generated with Grok Imagine for natural, honest food styling.
+| Section | What it does |
+|---|---|
+| **Home** | Progress at a glance, Marco's daily tip, featured recipe |
+| **Pizza School** | 12 story-style lessons across 3 packs: Dough School, Sauce & Cheese, Oven Mastery |
+| **Pizza Builder** | Compose a pizza and watch live flavour-balance meters, moisture warnings and Marco's pairing insights |
+| **Recipes** | 4 cook-along recipes with step-by-step navigation and built-in timers |
+| **Bake Guide** | Home oven protocols (fan vs conventional), hardware ranked, doneness cues |
+| **Journal** | Log designs, bakes and notes; export as JSON |
+| **Pies** | Coming soon — the pastry chapter is in the test kitchen |
 
-**Getting Started (Local)**
-Open `index.html` in a modern browser. For full PWA experience, serve via a local server (e.g. `python -m http.server` or VS Code Live Server).
+## Design
 
-**Deployment**
-Push to GitHub Pages (or copy the built files to your `gh-pages` branch). The app is self-contained.
+Vintage 1930s rubber-hose cartoon branding (meet **Marco**, the club mascot) set in a bright Italian-kitchen palette of warm whites, cream and terracotta. All food photography follows a real-food style guide: natural light, honest imperfections, no stock-photo gloss.
 
-**Next**
-Pies section will be expanded with the same quality and science-first approach.
+## Tech
 
-Built with ❤️ for home cooks who want to understand *why* things work.
+- Vanilla HTML/CSS/JS (ES modules) — zero dependencies, zero build step
+- Hash-based routing, localStorage state
+- Service worker: offline-capable, versioned cache
+- Web App Manifest with maskable icons and app shortcuts
 
----
+## Develop locally
 
-## Current Images (Grok Imagine generated)
-- `images/sharing-pizza.jpg` — Sharing size pizza
-- `images/baking-steel-oven.jpg` — Baking steel in action (for apparatus section)
+```bash
+python3 -m http.server 8080
+# open http://localhost:8080
+```
 
-Add more generated images as needed and update references in code.
+Built with ❤️ and semolina.

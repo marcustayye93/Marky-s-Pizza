@@ -1,0 +1,61 @@
+/* ================================================================
+   Marco's Pizza Club — Design tokens  v2 "Rubber Hose"
+   1930s cartoon poster × bright Italian kitchen
+   ================================================================ */
+:root{
+  /* Palette — warm whites & terracotta, inked outlines */
+  --bg:#F7EED9;               /* aged poster cream */
+  --surface:#FFFBF0;          /* warm white card */
+  --surface-2:#F1E4C8;        /* deeper cream */
+  --surface-raised:#FFFDF6;
+  --ink:#2C1A12;              /* warm cartoon ink */
+  --ink-soft:#4A3327;
+  --muted:#7A6350;
+  --line:#2C1A12;             /* outlines ARE the ink */
+  --line-soft:rgba(44,26,18,.14);
+
+  --terracotta:#C1502E;
+  --terracotta-deep:#9E3D22;
+  --terracotta-light:#DE7A52;
+  --terracotta-soft:#F6DCCB;
+  --basil:#4E7A44;
+  --basil-deep:#3C6134;
+  --basil-soft:#DFE9D3;
+  --butter:#F0B93B;
+  --butter-dark:#C98F1B;
+  --butter-soft:#FBEBC2;
+  --cream:#FBF3DF;
+  --crust:#C98F4A;
+  --danger:#B3341F;
+
+  /* Rubber-hose hard shadows (offset, no blur) */
+  --pop-sm:2px 2px 0 var(--ink);
+  --pop:3px 3px 0 var(--ink);
+  --pop-lg:5px 5px 0 var(--ink);
+  --pop-terra:4px 4px 0 var(--terracotta-deep);
+  --shadow-soft:0 14px 34px rgba(60,32,16,.13);
+
+  /* Outline weights */
+  --stroke:2.5px;
+  --stroke-thin:2px;
+
+  /* Shape & motion */
+  --radius-xl:26px;
+  --radius-lg:20px;
+  --radius-md:15px;
+  --radius-sm:11px;
+  --tap:48px;
+  --ease-out:cubic-bezier(.22,.72,.22,1);
+  --ease-bounce:cubic-bezier(.34,1.6,.44,1);
+
+  /* Type — vintage cartoon display + friendly body */
+  --font-display:"Titan One",system-ui,sans-serif;
+  --font-body:"Rubik",system-ui,-apple-system,sans-serif;
+
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+
+  /* Textures */
+  --halftone:radial-gradient(rgba(44,26,18,.055) 1.15px,transparent 1.3px);
+  --halftone-size:9px 9px;
+  --awning:repeating-linear-gradient(90deg,var(--terracotta) 0 26px,#FFF6E4 26px 52px);
+}
