@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marky’s Pizza and Pies • Learn to make excellent pizza at home</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#c75b39">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">Marky’s <span>Pizza</span></div>
+        <div style="font-size:0.9rem; color:#5c524d;">Singapore • Home Edition</div>
+      </div>
+    </header>
+
+    <!-- HOME VIEW -->
+    <div id="view-home" class="view active">
+      <div class="hero">
+        <h1>Master pizza at home.<br>Understand why it works.</h1>
+        <p>Practical science for personal and sharing-size pies using the ovens you actually have — convection or multi-function.</p>
+        <button class="btn" onclick="navigateTo('learn')">Start Learning →</button>
+        <button class="btn btn-secondary mt-4" onclick="navigateTo('build')" style="margin-left:8px;">Open Pizza Builder</button>
+      </div>
+
+      <h2 style="margin: 0 0 12px 4px; font-size:1.25rem;">Your Progress</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="lessons-completed">0/8</div>
+          <div class="stat-label">Lessons completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="builds-saved">0</div>
+          <div class="stat-label">Builds saved</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="recipes-cooked">0</div>
+          <div class="stat-label">Recipes cooked</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Continue where you left off</h3>
+        <p style="margin-bottom:16px; color:#5c524d;">Foundations of Great Dough • Lesson 3 of 4</p>
+        <button class="btn btn-small" onclick="navigateTo('learn')">Resume Learning</button>
+      </div>
+
+      <div class="card" style="background:#fffaf0; border-color:#f0d9b8;">
+        <h3 style="color:#c75b39;">🍕 Quick tip</h3>
+        <p style="margin:0;">A baking steel or thick metal plate on the lowest rack transforms home oven pizza. See the Bake Guide for exactly how to use it safely.</p>
+      </div>
+    </div>
+
+    <!-- LEARN VIEW -->
+    <div id="view-learn" class="view">
+      <h1 style="margin-top:0;">Pizza Essentials</h1>
+      <p style="color:#5c524d; max-width:620px;">Short, focused lessons that teach the science of flavour and texture so your pizza gets better every time.</p>
+
+      <div id="chapters-container"></div>
+    </div>
+
+    <!-- LESSON DETAIL (modal-like) -->
+    <div id="lesson-detail" class="view hidden" style="max-width:720px; margin:0 auto;">
+      <button class="btn btn-secondary btn-small" onclick="closeLessonDetail()" style="margin-bottom:16px;">← Back to curriculum</button>
+      <div id="lesson-content"></div>
+      <div style="margin-top:24px; display:flex; gap:12px;">
+        <button class="btn" onclick="markLessonComplete()">Mark as Complete ✓</button>
+        <button class="btn btn-secondary" onclick="closeLessonDetail()">Close</button>
+      </div>
+    </div>
+
+    <!-- BUILD VIEW -->
+    <div id="view-build" class="view">
+      <h1 style="margin-top:0;">Pizza Builder</h1>
+      <p style="color:#5c524d;">Experiment with sizes and toppings. Get instant feedback on flavour balance and practical oven advice for your kitchen.</p>
+
+      <div class="builder-grid">
+        <!-- Controls -->
+        <div>
+          <div class="card">
+            <div class="form-group">
+              <label>Size</label>
+              <select id="size-select" onchange="updateBuilderFeedback()">
+                <option value="personal">Personal (20–25 cm) — 1 person</option>
+                <option value="sharing">Sharing (28–32 cm) — 3–4 people</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Dough Style</label>
+              <select id="dough-select" onchange="updateBuilderFeedback()">
+                <option value="neapolitan">Neapolitan-style (68% hydration)</option>
+                <option value="ny">New York-style (62% hydration)</option>
+                <option value="standard">Balanced home (65% hydration)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Sauce</label>
+              <select id="sauce-select" onchange="updateBuilderFeedback()">
+                <option value="classic">Classic tomato</option>
+                <option value="bianca">Bianca (garlic + olive oil)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Cheese (select all that apply)</label>
+              <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                <label><input type="checkbox" value="mozzarella" checked onchange="updateBuilderFeedback()"> Low-moisture Mozzarella</label>
+                <label><input type="checkbox" value="parmesan" onchange="updateBuilderFeedback()"> Aged Parmesan</label>
+                <label><input type="checkbox" value="fior" onchange="updateBuilderFeedback()"> Fresh Fior di Latte</label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Toppings</label>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.9rem;">
+                <div>
+                  <strong style="font-size:0.8rem; color:#5c524d;">Veggies &amp; Herbs</strong><br>
+                  <label><input type="checkbox" value="basil" onchange="updateBuilderFeedback()"> Fresh Basil</label><br>
+                  <label><input type="checkbox" value="mushroom" onchange="updateBuilderFeedback()"> Mushrooms</label><br>
+                  <label><input type="checkbox" value="tomato" onchange="updateBuilderFeedback()"> Fresh Tomato</label>
+                </div>
+                <div>
+                  <strong style="font-size:0.8rem; color:#5c524d;">Proteins &amp; Other</strong><br>
+                  <label><input type="checkbox" value="pepperoni" onchange="updateBuilderFeedback()"> Pepperoni</label><br>
+                  <label><input type="checkbox" value="prosciutto" onchange="updateBuilderFeedback()"> Prosciutto (after bake)</label>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn" onclick="analyzeBuild()" style="width:100%; margin-top:8px;">Analyze Build &amp; Get Protocol</button>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div>
+          <div class="feedback-panel" id="feedback-panel">
+            <h3 style="margin-top:0;">Build Analysis</h3>
+            <p style="color:#5c524d; font-size:0.9rem;">Select your options above and click “Analyze Build” to see flavour balance, moisture warnings, and recommended oven protocol.</p>
+          </div>
+
+          <div style="margin-top:16px; text-align:center;">
+            <button class="btn btn-secondary" onclick="saveBuildToJournal()">Save this build to Journal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECIPES VIEW -->
+    <div id="view-recipes" class="view">
+      <h1 style="margin-top:0;">Signature Cook-alongs</h1>
+      <p style="color:#5c524d;">Real recipes with timers, science notes, and exact protocols for convection or multi-function ovens.</p>
+      
+      <div id="recipes-container" style="display:flex; flex-direction:column; gap:20px;"></div>
+    </div>
+
+    <!-- BAKE GUIDE VIEW -->
+    <div id="view-bake" class="view">
+      <h1 style="margin-top:0;">Bake Guide &amp; Home Oven Upgrades</h1>
+      
+      <div class="card">
+        <h3>Choose your oven type</h3>
+        <div class="protocol-tabs">
+          <button class="tab-btn active" onclick="switchProtocolTab('convection')">Standard Convection</button>
+          <button class="tab-btn" onclick="switchProtocolTab('multi')">Multi-Function Oven</button>
+        </div>
+
+        <div id="protocol-content">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="card apparatus-card">
+        <h3>🛠️ Enhancing Your Home Oven for Pizza</h3>
+        <p><strong>Baking steel or thick metal plate</strong> — Highly recommended. A 6–10 mm thick steel plate on the lowest rack or oven floor stores massive heat and delivers it directly to the base of the pizza. Result: faster bake, crispier bottom, better leopard spotting.</p>
+        
+        <p><strong>How to use it safely:</strong></p>
+        <ul style="font-size:0.95rem; line-height:1.5;">
+          <li>Preheat oven + steel for 45–60 minutes at your highest safe temperature (230–250°C).</li>
+          <li>Use a pizza peel with semolina or flour for easy launch.</li>
+          <li>Never put cold/wet items directly on a screaming hot steel.</li>
+          <li>Let it cool slowly in the oven after use. Avoid thermal shock.</li>
+        </ul>
+        
+        <p style="margin-top:12px;"><strong>Pizza stone</strong> works similarly but can crack more easily from moisture or sudden temperature changes. Steel is generally more forgiving for home use.</p>
+        
+        <p style="font-size:0.9rem; color:#5c524d;">Other useful tools: perforated pizza pan, good wooden or metal peel, and a bench scraper for handling dough.</p>
+      </div>
+    </div>
+
+    <!-- JOURNAL VIEW -->
+    <div id="view-journal" class="view">
+      <h1 style="margin-top:0;">Your Pizza Journal</h1>
+      <p style="color:#5c524d;">Saved builds and experiment notes. Everything stays on your device.</p>
+      
+      <div id="journal-list"></div>
+      
+      <div class="card" style="margin-top:24px;">
+        <h3 style="margin-top:0;">Export / Backup</h3>
+        <p style="font-size:0.9rem;">Your data is saved locally. Export a JSON backup so you never lose your experiments.</p>
+        <button class="btn btn-secondary btn-small" onclick="exportJournal()">Export Journal as JSON</button>
+      </div>
+    </div>
+
+    <!-- PIES COMING SOON -->
+    <div id="view-pies" class="view">
+      <div class="pies-placeholder">
+        <img src="images/sharing-pizza.jpg" alt="Beautiful sharing pizza" style="max-width:420px; width:100%; border-radius:16px; margin-bottom:24px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+        <h2>Pies are coming soon</h2>
+        <p style="max-width:480px; margin:12px auto 24px; color:#5c524d;">The same practical science-first approach — but for perfect pastry, fillings, and flavour layering in both sweet and savoury pies. Built for real home ovens.</p>
+        <button class="btn btn-secondary" onclick="navigateTo('home')">Back to Pizza for now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button onclick="navigateTo('home')" data-view="home">
+      <span>🏠</span><div>Home</div>
+    </button>
+    <button onclick="navigateTo('learn')" data-view="learn">
+      <span>📚</span><div>Learn</div>
+    </button>
+    <button onclick="navigateTo('build')" data-view="build">
+      <span>🍕</span><div>Build</div>
+    </button>
+    <button onclick="navigateTo('recipes')" data-view="recipes">
+      <span>📖</span><div>Recipes</div>
+    </button>
+    <button onclick="navigateTo('bake')" data-view="bake">
+      <span>🔥</span><div>Bake</div>
+    </button>
+    <button onclick="navigateTo('journal')" data-view="journal">
+      <span>📝</span><div>Journal</div>
+    </button>
+  </nav>
+
+  <script type="module">
+    import { chapters, allLessons } from './js/data/lessons.js';
+    import { recipes } from './js/data/recipes.js';
+
+    // Global state
+    let currentLessonId = null;
+    let currentProtocolTab = 'convection';
+    let journal = JSON.parse(localStorage.getItem('markysJournal') || '[]');
+    let completedLessons = JSON.parse(localStorage.getItem('markysCompletedLessons') || '[]');
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(console.error);
+    }
+
+    // Navigation
+    window.navigateTo = function(view) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById('view-' + view);
+      if (target) target.classList.add('active');
+
+      // Update bottom nav active state
+      document.querySelectorAll('.bottom-nav button').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-view') === view);
+      });
+
+      if (view === 'learn') renderChapters();
+      if (view === 'recipes') renderRecipes();
+      if (view === 'journal') renderJournal();
+      if (view === 'bake') renderProtocolContent();
+      if (view === 'home') updateHomeStats();
+    };
+
+    function updateHomeStats() {
+      document.getElementById('lessons-completed').textContent = `${completedLessons.length}/8`;
+      document.getElementById('builds-saved').textContent = journal.length;
+      document.getElementById('recipes-cooked').textContent = journal.filter(j => j.type === 'recipe').length || 0;
+    }
+
+    // Lessons
+    function renderChapters() {
+      const container = document.getElementById('chapters-container');
+      container.innerHTML = '';
+
+      chapters.forEach(chapter => {
+        const chapterEl = document.createElement('div');
+        chapterEl.className = 'card';
+        chapterEl.innerHTML = `
+          <div class="chapter-header">
+            <div>
+              <h3 style="margin:0;">${chapter.title}</h3>
+              <p style="margin:4px 0 0; color:#5c524d; font-size:0.9rem;">${chapter.description}</p>
+            </div>
+          </div>
+          <div class="lesson-list"></div>
+        `;
+
+        const lessonList = chapterEl.querySelector('.lesson-list');
+
+        chapter.lessons.forEach(lesson => {
+          const isCompleted = completedLessons.includes(lesson.id);
+          const lessonEl = document.createElement('div');
+          lessonEl.className = `lesson-item ${isCompleted ? 'completed' : ''}`;
+          lessonEl.innerHTML = `
+            <div>
+              <strong>${lesson.title}</strong>
+              <div class="lesson-meta">${lesson.duration}</div>
+            </div>
+            <div style="text-align:right; font-size:1.1rem;">${isCompleted ? '✅' : '→'}</div>
+          `;
+          lessonEl.onclick = () => openLesson(lesson.id);
+          lessonList.appendChild(lessonEl);
+        });
+
+        container.appendChild(chapterEl);
+      });
+    }
+
+    function openLesson(lessonId) {
+      const lesson = allLessons.find(l => l.id === lessonId);
+      if (!lesson) return;
+
+      currentLessonId = lessonId;
+
+      const detailView = document.getElementById('lesson-detail');
+      const content = document.getElementById('lesson-content');
+
+      content.innerHTML = `
+        <h2 style="margin-top:0;">${lesson.title}</h2>
+        <div style="display:flex; gap:12px; margin-bottom:16px;">
+          <span class="chip">${lesson.duration}</span>
+        </div>
+        <div>${lesson.content}</div>
+        <div class="card" style="background:#f8f1e9; margin-top:20px;">
+          <strong>Key takeaway</strong><br>
+          ${lesson.takeaway}
+        </div>
+      `;
+
+      // Hide other views and show detail
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      detailView.classList.remove('hidden');
+      detailView.classList.add('active');
+    }
+
+    window.closeLessonDetail = function() {
+      const detailView = document.getElementById('lesson-detail');
+      detailView.classList.remove('active');
+      detailView.classList.add('hidden');
+      navigateTo('learn');
+    };
+
+    window.markLessonComplete = function() {
+      if (!currentLessonId) return;
+      if (!completedLessons.includes(currentLessonId)) {
+        completedLessons.push(currentLessonId);
+        localStorage.setItem('markysCompletedLessons', JSON.stringify(completedLessons));
+      }
+      closeLessonDetail();
+      // Refresh stats if on home
+      updateHomeStats();
+    };
+
+    // Builder
+    window.updateBuilderFeedback = function() {
+      // Optional live preview — for now we keep it on button click for clarity
+    };
+
+    window.analyzeBuild = function() {
+      const size = document.getElementById('size-select').value;
+      const dough = document.getElementById('dough-select').value;
+      const sauce = document.getElementById('sauce-select').value;
+      
+      const cheeses = Array.from(document.querySelectorAll('#view-build input[type="checkbox"]:checked')).map(cb => cb.value);
+      const toppings = Array.from(document.querySelectorAll('#view-build input[type="checkbox"]:checked')).map(cb => cb.value); // simplified
+
+      const panel = document.getElementById('feedback-panel');
+      
+      let html = `<h3 style="margin-top:0;">Build Analysis</h3>`;
+
+      // Size note
+      html += `<div class="feedback-item"><strong>Size:</strong> ${size === 'personal' ? 'Personal (20–25 cm) — easy to handle and bake evenly' : 'Sharing (28–32 cm) — one generous pie or consider two personals for better results in home ovens'}</div>`;
+
+      // Flavour balance
+      let balance = '';
+      if (sauce === 'classic' && cheeses.includes('mozzarella')) {
+        balance = 'Classic acid + fat harmony. Tomato brightness cuts the creamy mozzarella beautifully.';
+      } else if (sauce === 'bianca') {
+        balance = 'Garlic + oil base is rich. Add fresh herbs or a squeeze of lemon at the end for brightness.';
+      } else {
+        balance = 'Good foundation. Consider adding a touch of acid (tomato or lemon) to balance richness.';
+      }
+      html += `<div class="feedback-item"><strong>Flavour balance:</strong> ${balance}</div>`;
+
+      // Moisture warning
+      const hasWetToppings = toppings.includes('mushroom') || toppings.includes('tomato');
+      if (hasWetToppings && size === 'sharing') {
+        html += `<div class="feedback-item warning">⚠️ Several moist toppings on a larger pie. Pre-cook mushrooms or use less sauce to protect the base. Baking steel helps a lot here.</div>`;
+      } else if (hasWetToppings) {
+        html += `<div class="feedback-item">Moisture managed — keep toppings light and cheese as a barrier layer.</div>`;
+      }
+
+      // Protocol suggestion
+      const protocolNote = size === 'personal' 
+        ? 'Personal size bakes fast and evenly. Great choice for home ovens.'
+        : 'Sharing size works well but rotate halfway. Many home cooks prefer two personal pies for more consistent results.';
+      html += `<div class="feedback-item"><strong>Recommended protocol:</strong> ${protocolNote} See Bake Guide for exact temperatures and steel/stone advice.</div>`;
+
+      panel.innerHTML = html;
+    };
+
+    window.saveBuildToJournal = function() {
+      const size = document.getElementById('size-select').value;
+      const dough = document.getElementById('dough-select').value;
+      const sauce = document.getElementById('sauce-select').value;
+      const cheeses = Array.from(document.querySelectorAll('#view-build input[type="checkbox"]:checked')).map(cb => cb.value);
+
+      const entry = {
+        id: Date.now(),
+        type: 'build',
+        date: new Date().toISOString(),
+        size,
+        dough,
+        sauce,
+        cheeses,
+        notes: 'Custom build from Pizza Builder'
+      };
+
+      journal.unshift(entry);
+      localStorage.setItem('markysJournal', JSON.stringify(journal));
+      
+      alert('Build saved to your Journal! You can add more notes there.');
+      updateHomeStats();
+    };
+
+    // Recipes
+    function renderRecipes() {
+      const container = document.getElementById('recipes-container');
+      container.innerHTML = '';
+
+      recipes.forEach(recipe => {
+        const el = document.createElement('div');
+        el.className = 'card recipe-card';
+        el.innerHTML = `
+          <img src="${recipe.image || 'https://picsum.photos/id/292/800/400'}" class="recipe-image" alt="${recipe.title}">
+          <h3 style="margin:0 0 8px;">${recipe.title}</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <span class="chip">${recipe.size} • ${recipe.serves} pax</span>
+            <span class="chip">${recipe.doughWeight} dough</span>
+            <span class="chip">${recipe.difficulty}</span>
+          </div>
+          <p style="margin-bottom:16px;">${recipe.description}</p>
+          
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer; font-weight:600; color:#c75b39;">View full cook-along + timers</summary>
+            <div style="padding-top:12px;">
+              ${recipe.steps.map((step, i) => `
+                <div class="step">
+                  <div class="step-number">${i+1}</div>
+                  <div style="flex:1;">
+                    <strong>${step.title}</strong> <span style="color:#5c524d; font-size:0.85rem;">(${step.time})</span><br>
+                    ${step.instruction}
+                    ${step.time.includes('min') ? `<button class="timer-btn" onclick="startTimer(this, ${parseInt(step.time)})">Start ${step.time} timer</button>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+              
+              <div style="margin-top:16px; padding:12px; background:#f8f1e9; border-radius:8px;">
+                <strong>Science note:</strong> ${recipe.scienceNotes}
+              </div>
+            </div>
+          </details>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-small" onclick="useRecipeInBuilder('${recipe.id}')">Adapt in Builder</button>
+            <button class="btn btn-secondary btn-small" onclick="logRecipeCooked('${recipe.id}')">Mark as Cooked</button>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    window.startTimer = function(btn, minutes) {
+      let seconds = minutes * 60;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+
+      const interval = setInterval(() => {
+        seconds--;
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        btn.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+
+        if (seconds <= 0) {
+          clearInterval(interval);
+          btn.textContent = 'Done!';
+          btn.style.background = '#4a7043';
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            btn.style.background = '';
+          }, 2000);
+        }
+      }, 1000);
+    };
+
+    window.useRecipeInBuilder = function(recipeId) {
+      const recipe = recipes.find(r => r.id === recipeId);
+      if (!recipe) return;
+
+      navigateTo('build');
+      
+      // Pre-fill some values
+      setTimeout(() => {
+        document.getElementById('size-select').value = recipe.size;
+        if (recipe.title.includes('Margherita')) {
+          document.getElementById('sauce-select').value = 'classic';
+        }
+        // Trigger analysis automatically
+        const panel = document.getElementById('feedback-panel');
+        panel.innerHTML = `<h3 style="margin-top:0;">${recipe.title} adapted</h3>
+          <p>Use the controls to tweak and then click <strong>Analyze Build</strong> for your custom protocol.</p>`;
+      }, 300);
+    };
+
+    window.logRecipeCooked = function(recipeId) {
+      const recipe = recipes.find(r => r.id === recipeId);
+      const entry = {
+        id: Date.now(),
+        type: 'recipe',
+        date: new Date().toISOString(),
+        recipeId,
+        title: recipe.title,
+        notes: 'Cooked from signature collection'
+      };
+      journal.unshift(entry);
+      localStorage.setItem('markysJournal', JSON.stringify(journal));
+      alert('Great job! Recipe logged in your Journal.');
+      updateHomeStats();
+    };
+
+    // Bake Guide
+    function renderProtocolContent() {
+      const container = document.getElementById('protocol-content');
+      const isMulti = currentProtocolTab === 'multi';
+
+      container.innerHTML = `
+        <h4 style="margin:0 0 12px;">${isMulti ? 'Multi-Function Microwave/Combi Oven' : 'Standard Convection Oven'}</h4>
+        
+        <p><strong>General pizza settings:</strong></p>
+        <ul style="font-size:0.95rem;">
+          <li>Temperature: 220–250°C (as hot as your oven safely goes)</li>
+          <li>Position: Lowest rack or directly on baking steel / pizza stone</li>
+          <li>Preheat: Minimum 30–45 minutes (longer is better)</li>
+          <li>Time: Personal pies 8–12 min • Sharing pies 10–14 min</li>
+          <li>Visual cues: Leopard spotting on crust, bubbling &amp; browning cheese, firm but flexible base when lifted</li>
+        </ul>
+
+        ${isMulti ? `
+          <div style="margin-top:16px; padding:12px; background:#fffaf0; border-radius:8px;">
+            <strong>Multi-function tips:</strong> Use Convection or dedicated Pizza mode. Some units have a grill element — turn it on for the last 1–2 minutes for better cheese colour. Watch closely because the smaller cavity heats and browns faster. Two smaller personal pies often work better than one large pie.
+          </div>
+        ` : `
+          <div style="margin-top:16px; padding:12px; background:#fffaf0; border-radius:8px;">
+            <strong>Pro move:</strong> Place a thick baking steel or metal plate on the lowest rack or oven floor. It stores heat like a commercial deck oven and gives you dramatically better bottom crust and oven spring.
+          </div>
+        `}
+      `;
+    }
+
+    window.switchProtocolTab = function(tab) {
+      currentProtocolTab = tab;
+      document.querySelectorAll('.protocol-tabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes(tab));
+      });
+      renderProtocolContent();
+    };
+
+    // Journal
+    function renderJournal() {
+      const container = document.getElementById('journal-list');
+      container.innerHTML = '';
+
+      if (journal.length === 0) {
+        container.innerHTML = `<div class="card"><p style="color:#5c524d;">No entries yet. Save builds from the Builder or log recipes you cook.</p></div>`;
+        return;
+      }
+
+      journal.forEach((entry, index) => {
+        const el = document.createElement('div');
+        el.className = 'journal-entry card';
+        const date = new Date(entry.date).toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
+
+        if (entry.type === 'build') {
+          el.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <div>
+                <strong>${entry.size} build</strong> — ${date}<br>
+                <span style="font-size:0.9rem; color:#5c524d;">${entry.dough} • ${entry.sauce} • ${entry.cheeses.join(', ')}</span>
+              </div>
+              <button onclick="deleteJournalEntry(${index})" style="background:none; border:none; color:#c75b39; font-size:1.1rem; cursor:pointer;">×</button>
+            </div>
+            <p style="margin:8px 0 0; font-size:0.9rem;">${entry.notes}</p>
+          `;
+        } else {
+          el.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <div>
+                <strong>🍕 ${entry.title}</strong> — ${date}
+              </div>
+              <button onclick="deleteJournalEntry(${index})" style="background:none; border:none; color:#c75b39; font-size:1.1rem; cursor:pointer;">×</button>
+            </div>
+            <p style="margin:4px 0 0; font-size:0.9rem; color:#5c524d;">${entry.notes}</p>
+          `;
+        }
+        container.appendChild(el);
+      });
+    }
+
+    window.deleteJournalEntry = function(index) {
+      if (confirm('Delete this journal entry?')) {
+        journal.splice(index, 1);
+        localStorage.setItem('markysJournal', JSON.stringify(journal));
+        renderJournal();
+        updateHomeStats();
+      }
+    };
+
+    window.exportJournal = function() {
+      const dataStr = JSON.stringify(journal, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = 'markys-pizza-journal-backup.json';
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    };
+
+    // Initial load
+    function init() {
+      // Render initial home stats
+      updateHomeStats();
+
+      // Pre-populate a couple journal entries for demo feel (only first load)
+      if (journal.length === 0) {
+        journal = [
+          { id: 1, type: 'build', date: new Date(Date.now() - 86400000).toISOString(), size: 'personal', dough: 'standard', sauce: 'classic', cheeses: ['mozzarella'], notes: 'First try with baking steel — huge difference on the bottom crust!' },
+          { id: 2, type: 'recipe', date: new Date(Date.now() - 172800000).toISOString(), recipeId: 'r1', title: 'Classic Personal Margherita', notes: 'Turned out great. Used 65% hydration and 48h cold proof.' }
+        ];
+        localStorage.setItem('markysJournal', JSON.stringify(journal));
+      }
+
+      // Initial renders
+      renderChapters();
+      renderRecipes();
+      renderProtocolContent();
+      renderJournal();
+
+      // Make sure home is active
+      document.getElementById('view-home').classList.add('active');
+
+      // Keyboard support hint
+      console.log('%c[Marky’s Pizza] PWA initialized. Press Cmd/Ctrl + K for quick nav (future).', 'color:#5c524d');
+    }
+
+    // Boot the app
+    init();
+  </script>
+</body>
+</html>
