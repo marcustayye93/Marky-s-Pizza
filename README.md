@@ -14,6 +14,7 @@ A playful, science-first Progressive Web App that teaches you to make excellent 
 | **Pizza School** | 12 story-style lessons across 3 packs: Dough School, Sauce & Cheese, Oven Mastery — every slide illustrated with a real-food photo |
 | **Pizza Builder** | Compose a pizza and watch live flavour-balance meters, moisture warnings and Marco's pairing insights |
 | **Recipes** | 4 cook-along recipes with step-by-step navigation and built-in timers |
+| **Dough Lab** | 5 experimental dough recipes with baker's percentages, timelines, crust-profile meters and the science of fermentation — headlined by a tribute to Casa Vostra's Newpolitan®-style crust |
 | **Bake Guide** | Home oven protocols (fan vs conventional), hardware ranked, doneness cues |
 | **Journal** | Log designs, bakes and notes; export as JSON |
 | **Pasta** | Coming soon — the pasta chapter is in the test kitchen |

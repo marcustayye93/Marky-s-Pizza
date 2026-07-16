@@ -8,6 +8,7 @@ import {
   SIZES, DOUGHS, SAUCES, CHEESES, TOPPINGS, COMBOS,
   SIZE_DEFAULT, DOUGH_DEFAULT, SAUCE_DEFAULT
 } from "./data/builder.js";
+import { DOUGHS as DOUGH_RECIPES } from "./data/doughs.js";
 
 /* ---------------- State ---------------- */
 const STORE_KEY = "mpc-state";
@@ -74,7 +75,7 @@ function fmtWhen(ts) {
 }
 
 /* ---------------- Router ---------------- */
-const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pasta: "Pasta" };
+const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pasta: "Pasta", doughlab: "Dough Lab" };
 
 function currentRoute() {
   const h = (location.hash || "#home").slice(1);
@@ -86,11 +87,12 @@ function render() {
   const route = currentRoute();
   $("#pageTitle").textContent = TITLES[route];
   $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route));
-  const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta };
+  const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta, doughlab: viewDoughLab };
   app.innerHTML = views[route]();
   app.scrollTop = 0;
   window.scrollTo({ top: 0 });
-  const after = { learn: wireLearn, build: wireBuild, recipes: wireRecipes, bake: wireBake, journal: wireJournal, home: wireHome, pasta: wirePasta };
+  const after = { learn: wireLearn, build: wireBuild, recipes: wireRecipes, bake: wireBake, journal: wireJournal, home: wireHome, pasta: wirePasta, doughlab: wireDoughLab };
+  $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route || (route === "doughlab" && b.dataset.route === "recipes")));
   after[route]();
 }
 
@@ -156,6 +158,17 @@ function viewHome() {
       <div>
         <h3>Marco's tip of the day</h3>
         <p>${esc(dailyTip())}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="card media-card doughlab-teaser" data-go="doughlab" role="button" tabindex="0">
+      <img src="./images/doughlab/doughlab-hero.jpg" alt="Dough experiment bench with scale, flour and dough ball" loading="lazy" />
+      <div class="media-copy">
+        <span class="chip chip-butter">New</span>
+        <h3 style="margin-top:8px">The Dough Lab</h3>
+        <p>Five doughs, five personalities — including Marco's tribute to that legendary Casa Vostra crust.</p>
       </div>
     </div>
   </section>
@@ -626,6 +639,14 @@ function viewRecipes() {
     <div class="section-head">
       <div><h2>Recipes</h2><p>Cook-along mode with built-in timers. Phone on the counter, sauce on your thumb.</p></div>
     </div>
+    <div class="card media-card doughlab-teaser" data-go-lab role="button" tabindex="0" style="margin-bottom:14px">
+      <img src="./images/doughlab/doughlab-hero.jpg" alt="Dough experiment bench" loading="lazy" />
+      <div class="media-copy">
+        <span class="chip chip-butter">New</span>
+        <h3 style="margin-top:8px">The Dough Lab</h3>
+        <p>Five experimental doughs — from a beginner 65% to Marco's Casa Vostra tribute.</p>
+      </div>
+    </div>
     ${RECIPES.map(r => `
     <div class="card media-card" data-cook="${r.id}" role="button" tabindex="0" style="margin-bottom:14px">
       <img src="${r.image}" alt="${esc(r.title)}" loading="lazy" />
@@ -640,6 +661,8 @@ function viewRecipes() {
 
 function wireRecipes() {
   $$("[data-cook]").forEach(el => el.addEventListener("click", () => openCook(el.dataset.cook)));
+  const lab = $("[data-go-lab]");
+  if (lab) lab.addEventListener("click", () => { location.hash = "#doughlab"; });
 }
 
 /* ---------------- Cook-along overlay ---------------- */
@@ -972,6 +995,129 @@ function wireJournal() {
     a.click();
     URL.revokeObjectURL(a.href);
     toast("Journal exported as JSON.");
+  });
+}
+
+/* ================================================================
+   DOUGH LAB — experimental dough recipes
+================================================================ */
+const METER_LABELS = { crisp: "Crisp", fluff: "Fluff", chew: "Chew", flavour: "Flavour" };
+
+function metersHtml(meters, compact = false) {
+  return `<div class="meters${compact ? " meters-compact" : ""}">${Object.entries(METER_LABELS).map(([k, label]) => `
+    <div class="meter">
+      <span class="meter-label">${label}</span>
+      <span class="meter-dots">${[1, 2, 3, 4, 5].map(n => `<i class="${n <= meters[k] ? "on" : ""}"></i>`).join("")}</span>
+    </div>`).join("")}</div>`;
+}
+
+function viewDoughLab() {
+  const tried = state.doughsTried || {};
+  return `
+  <section class="section">
+    <div class="hero doughlab-hero">
+      <img src="./images/doughlab/doughlab-hero.jpg" alt="Dough experiment bench with scale, flour, water and honey" fetchpriority="high" />
+      <div class="hero-copy">
+        <span class="chip">Flour · water · salt · yeast</span>
+        <h2>The Dough Lab</h2>
+        <p>Same four ingredients, five completely different pizzas. That's not magic — that's fermentation. Pick a dough, follow the timeline, log the results.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    ${DOUGH_RECIPES.map(d => `
+    <div class="card dough-card" data-dough="${d.id}" role="button" tabindex="0">
+      <img class="card-img-top" src="${d.image}" alt="${esc(d.name)}" loading="lazy" />
+      <div class="dough-copy">
+        <div class="chips">
+          <span class="chip chip-butter">${esc(d.badge)}</span>
+          ${tried[d.id] ? `<span class="chip chip-basil">Tried ✓</span>` : ""}
+        </div>
+        <h3>${esc(d.name)}</h3>
+        <p>${esc(d.tagline)}</p>
+        <div class="dough-stats">
+          <span><strong>${d.hydration}%</strong> water</span>
+          <span><strong>${esc(d.time)}</strong> total</span>
+          <span><strong>${esc(d.level)}</strong></span>
+        </div>
+        ${metersHtml(d.meters, true)}
+      </div>
+    </div>`).join("")}
+  </section>`;
+}
+
+function wireDoughLab() {
+  $$("[data-dough]").forEach(el => el.addEventListener("click", () => openDough(el.dataset.dough)));
+}
+
+function openDough(id) {
+  const d = DOUGH_RECIPES.find(x => x.id === id);
+  if (!d) return;
+  overlayRoot.innerHTML = `
+  <div class="cook" role="dialog" aria-label="${esc(d.name)} dough recipe">
+    <div class="cook-top">
+      <button class="story-close" data-close-dough aria-label="Close dough recipe"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <span class="cook-title">${esc(d.name)}</span>
+      <span style="width:38px"></span>
+    </div>
+    <div class="cook-scroll">
+      <img class="cook-hero" src="${d.image}" alt="${esc(d.name)}" />
+      <div class="cook-pad">
+        <div class="chips">
+          <span class="chip chip-butter">${esc(d.badge)}</span>
+          <span class="chip chip-terracotta">${d.hydration}% hydration</span>
+          <span class="chip chip-terracotta">${esc(d.time)}</span>
+          <span class="chip chip-terracotta">${esc(d.level)}</span>
+        </div>
+        <h2>${esc(d.name)}</h2>
+        <p class="cook-intro">${esc(d.story)}</p>
+        ${metersHtml(d.meters)}
+        <p class="hint" style="margin-top:6px">${esc(d.yieldText)}</p>
+
+        <h3 style="margin:20px 0 8px">Ingredients</h3>
+        ${d.ingredients.map(sec => `
+          <div class="dough-ing-section">
+            ${d.ingredients.length > 1 ? `<h4>${esc(sec.section)}</h4>` : ""}
+            <table class="dough-table">
+              <thead><tr><th>Ingredient</th><th>Amount</th><th>Baker's %</th></tr></thead>
+              <tbody>${sec.items.map(it => `<tr><td>${esc(it.name)}</td><td>${esc(it.amount)}</td><td>${esc(it.pct)}</td></tr>`).join("")}</tbody>
+            </table>
+          </div>`).join("")}
+
+        <h3 style="margin:20px 0 8px">The timeline</h3>
+        <div class="dough-timeline">
+          ${d.timeline.map(t => `<div class="tl-row"><span class="tl-when">${esc(t.when)}</span><span class="tl-what">${esc(t.what)}</span></div>`).join("")}
+        </div>
+
+        <h3 style="margin:20px 0 8px">Method</h3>
+        <ol class="dough-steps">${d.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
+
+        <div class="science-note" style="margin-top:18px"><strong>The science:</strong> ${esc(d.science)}</div>
+
+        <h3 style="margin:20px 0 8px">Marco's tips</h3>
+        <ul class="ingredients">${d.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+
+        <button class="btn btn-primary btn-block" data-log-dough style="margin-top:18px">I made this — log it in my Journal</button>
+        <button class="btn btn-secondary btn-block" data-close-dough style="margin-top:10px">Back to the lab</button>
+      </div>
+    </div>
+  </div>`;
+
+  $$("[data-close-dough]", overlayRoot).forEach(b => b.addEventListener("click", closeOverlays));
+  $("[data-log-dough]", overlayRoot).addEventListener("click", () => {
+    state.doughsTried = state.doughsTried || {};
+    state.doughsTried[d.id] = true;
+    state.journal.unshift({
+      id: Date.now(), type: "bake",
+      title: d.name,
+      detail: `Dough Lab experiment: ${d.name} (${d.hydration}% hydration, ${d.time}).`,
+      ts: Date.now()
+    });
+    save();
+    closeOverlays();
+    toast("Experiment logged. The lab notebook grows.");
+    if (currentRoute() === "doughlab" || currentRoute() === "journal") render();
   });
 }
 

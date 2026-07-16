@@ -1,5 +1,5 @@
 /* Marco's Pizza Club — service worker */
-const VERSION = "mpc-v3";
+const VERSION = "mpc-v4";
 const CORE = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const CORE = [
   "./js/data/lessons.js",
   "./js/data/recipes.js",
   "./js/data/builder.js",
+  "./js/data/doughs.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/favicon-48.png"
