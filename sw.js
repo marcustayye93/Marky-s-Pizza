@@ -1,5 +1,5 @@
 /* Marco's Pizza Club — service worker */
-const VERSION = "mpc-v4";
+const VERSION = "mpc-v5";
 const CORE = [
   "./",
   "./index.html",

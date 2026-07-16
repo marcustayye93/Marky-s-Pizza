@@ -295,10 +295,10 @@ function openChapterMenu(packId) {
 /* ---------------- Story viewer ---------------- */
 let story = null;
 
-function openStory(packId, lessonId) {
+function openStory(packId, lessonId, slideIdx = 0, returnToCook = false) {
   const found = findLesson(packId, lessonId);
   if (!found) return;
-  story = { packId, lessonId, slideIdx: 0, ...found };
+  story = { packId, lessonId, slideIdx, returnToCook, ...found };
   renderStory();
 }
 
@@ -327,8 +327,9 @@ function renderStory() {
             <p class="story-body">"${esc(lesson.title)}" is in your head now. ${nextInPack() ? "Ready for the next chapter?" : "That's the whole pack — magnifico!"}</p>
           </div>
           <div style="display:flex;gap:10px;width:100%;max-width:340px">
+            ${story.returnToCook && cook ? `<button class="btn btn-primary btn-block" data-back-cook>Back to the recipe</button>` : `
             ${nextInPack() ? `<button class="btn btn-primary btn-block" data-next-lesson>Next lesson</button>` : ""}
-            <button class="btn btn-secondary btn-block" data-back-menu>Chapters</button>
+            <button class="btn btn-secondary btn-block" data-back-menu>Chapters</button>`}
           </div>
         </div>` : `
         ${slide.image ? `<img src="${slide.image}" alt="" />` : ""}
@@ -341,7 +342,13 @@ function renderStory() {
     </div>
   </div>`;
 
-  $(".story-close", overlayRoot).addEventListener("click", () => { story = null; closeOverlays(); render(); });
+  $(".story-close", overlayRoot).addEventListener("click", () => {
+    const backToCook = story.returnToCook && cook;
+    story = null;
+    if (backToCook) { renderCook(); } else { closeOverlays(); render(); }
+  });
+  const backCook = $("[data-back-cook]", overlayRoot);
+  if (backCook) backCook.addEventListener("click", () => { story = null; renderCook(); });
   const left = $(".story-tap.left", overlayRoot);
   const right = $(".story-tap.right", overlayRoot);
   if (left) left.addEventListener("click", () => { if (story.slideIdx > 0) { story.slideIdx--; renderStory(); } });
@@ -711,8 +718,22 @@ function renderCook() {
         <div class="cook-stepline">Step ${i + 1} of ${total}</div>
         <div class="progress" style="margin-bottom:18px"><i style="width:${Math.round((i + 1) / total * 100)}%"></i></div>
         <h2>${esc(step.title)}</h2>
-        <p class="cook-body">${esc(step.text)}</p>
+        ${step.use && step.use.length ? `
+        <div class="cook-use">
+          <div class="cook-use-label">You'll need</div>
+          <ul>${step.use.map(u => `<li>${esc(u)}</li>`).join("")}</ul>
+        </div>` : ""}
+        ${step.actions && step.actions.length ? `
+        <ol class="cook-actions">${step.actions.map(a => `<li>${esc(a)}</li>`).join("")}</ol>` : ""}
+        ${step.text ? `<p class="cook-body">${esc(step.text)}</p>` : ""}
+        ${step.note ? `<p class="cook-note"><strong>Marco says:</strong> ${esc(step.note)}</p>` : ""}
         ${step.minutes ? timerHtml(step.minutes) : ""}
+        ${step.learn ? `
+        <button class="cook-learn" data-learn>
+          <span class="cook-learn-icon">📖</span>
+          <span><small>Learn the why</small><strong>${esc(step.learn.label)}</strong></span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>` : ""}
       </div>`;
   }
 
@@ -738,6 +759,11 @@ function renderCook() {
   if (prev) prev.addEventListener("click", () => { cook.step--; renderCook(); });
   const next = $("[data-next]", overlayRoot);
   if (next) next.addEventListener("click", () => { cook.step++; renderCook(); });
+  const learnBtn = $("[data-learn]", overlayRoot);
+  if (learnBtn) learnBtn.addEventListener("click", () => {
+    const st = r.steps[cook.step];
+    if (st && st.learn) { stopTimer(); openStory(st.learn.pack, st.learn.lesson, st.learn.slide || 0, true); }
+  });
   const logBtn = $("[data-log]", overlayRoot);
   if (logBtn) logBtn.addEventListener("click", () => {
     state.journal.unshift({

@@ -736,3 +736,99 @@ main{flex:1;padding:22px 16px calc(118px + var(--safe-bottom));animation:page-in
 
 .dough-steps{margin:0;padding-left:22px;display:grid;gap:11px;font-size:15px;line-height:1.6;color:var(--ink-soft)}
 .dough-steps li::marker{font-family:var(--font-display);color:var(--terracotta)}
+
+/* ================================================================
+   Cook step: per-step ingredients + numbered actions
+================================================================ */
+.cook-use{
+  border:var(--stroke-thin) solid var(--ink);
+  border-radius:var(--radius-md);
+  background:var(--butter-soft);
+  box-shadow:var(--pop-sm);
+  padding:12px 16px;
+  margin:2px 0 16px;
+}
+.cook-use-label{
+  font-family:var(--font-display);
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--terracotta);
+  margin-bottom:7px;
+}
+.cook-use ul{list-style:none;margin:0;padding:0}
+.cook-use li{
+  position:relative;
+  padding:2px 0 2px 21px;
+  font-size:14px;font-weight:700;color:var(--ink);
+  line-height:1.5;
+}
+.cook-use li::before{
+  content:"";
+  position:absolute;left:2px;top:.62em;
+  width:9px;height:9px;border-radius:50%;
+  background:var(--terracotta);
+  border:2px solid var(--ink);
+}
+
+.cook-actions{
+  margin:0 0 16px;padding:0;list-style:none;
+  counter-reset:cookstep;
+}
+.cook-actions li{
+  counter-increment:cookstep;
+  position:relative;
+  padding:0 0 13px 44px;
+  font-size:15px;line-height:1.55;color:var(--ink);
+}
+.cook-actions li:last-child{padding-bottom:0}
+.cook-actions li::before{
+  content:counter(cookstep);
+  position:absolute;left:0;top:-2px;
+  width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:14px;
+  color:#FFF6E4;
+  background:var(--terracotta);
+  border:var(--stroke-thin) solid var(--ink);
+  border-radius:50%;
+  box-shadow:2px 2px 0 var(--ink);
+}
+
+.cook-note{
+  border-left:5px solid var(--terracotta);
+  background:var(--butter-soft);
+  border-radius:0 var(--radius-md) var(--radius-md) 0;
+  padding:11px 14px;
+  font-size:13.5px;line-height:1.55;color:var(--ink-soft);
+  margin:0 0 6px;
+}
+.cook-note strong{
+  font-family:var(--font-display);font-weight:400;
+  color:var(--terracotta-deep);
+}
+
+/* Learn-the-why link on cook steps */
+.cook-learn{
+  display:flex;align-items:center;gap:13px;width:100%;
+  margin-top:18px;padding:13px 16px;text-align:left;
+  background:var(--basil-soft);
+  border:var(--stroke-thin) solid var(--ink);
+  border-radius:var(--radius-md);
+  box-shadow:var(--pop-sm);
+  transition:transform .13s var(--ease-out),box-shadow .13s var(--ease-out);
+}
+.cook-learn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.cook-learn-icon{
+  flex-shrink:0;width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  background:var(--surface);
+  border:var(--stroke-thin) solid var(--ink);
+  box-shadow:2px 2px 0 var(--ink);
+}
+.cook-learn>span:nth-child(2){flex:1;min-width:0}
+.cook-learn small{
+  display:block;font-family:var(--font-display);font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--basil-deep);
+  margin-bottom:2px;
+}
+.cook-learn strong{font-size:14px;color:var(--ink);line-height:1.3}
+.cook-learn svg{flex-shrink:0;color:var(--basil-deep)}
