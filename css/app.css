@@ -832,3 +832,46 @@ main{flex:1;padding:22px 16px calc(118px + var(--safe-bottom));animation:page-in
 }
 .cook-learn strong{font-size:14px;color:var(--ink);line-height:1.3}
 .cook-learn svg{flex-shrink:0;color:var(--basil-deep)}
+
+/* ---------------- Oven mode picker & step videos ---------------- */
+.mode-pick{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.mode-card{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  background:var(--cream);
+  border:var(--stroke) solid var(--ink);
+  border-radius:var(--radius-md);
+  box-shadow:var(--pop);
+  padding:15px 16px;
+  transition:transform .13s var(--ease-out),box-shadow .13s var(--ease-out);
+}
+.mode-card:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.mode-icon{
+  flex-shrink:0;width:46px;height:46px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:23px;
+  background:var(--butter);border:var(--stroke-thin) solid var(--ink);
+}
+.mode-body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.mode-body strong{font-family:var(--font-display);font-size:16.5px;color:var(--ink);letter-spacing:.01em}
+.mode-body small{font-size:12.5px;line-height:1.45;color:var(--ink-soft);font-weight:500}
+.mode-card svg{color:var(--terracotta);flex-shrink:0}
+
+.mode-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-left:10px;padding:3px 10px;
+  font-size:10.5px;font-weight:800;letter-spacing:.04em;
+  color:var(--ink);background:var(--butter);
+  border:2px solid var(--ink);border-radius:99px;
+  box-shadow:1.5px 1.5px 0 var(--ink);
+  vertical-align:middle;
+  transition:transform .13s var(--ease-out),box-shadow .13s var(--ease-out);
+}
+.mode-chip:active{transform:translate(1.5px,1.5px);box-shadow:0 0 0 var(--ink)}
+
+.cook-video{
+  display:block;width:100%;
+  border:var(--stroke) solid var(--ink);
+  border-radius:var(--radius-md);
+  box-shadow:var(--pop);
+  margin:2px 0 18px;
+  background:#221108;
+}

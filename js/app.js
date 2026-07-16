@@ -3,7 +3,7 @@
 // Vanilla ES modules, hash router, localStorage state.
 // ================================================================
 import { PACKS, TOTAL_LESSONS, findLesson } from "./data/lessons.js";
-import { RECIPES, findRecipe } from "./data/recipes.js";
+import { RECIPES, findRecipe, OVEN_MODES } from "./data/recipes.js";
 import {
   SIZES, DOUGHS, SAUCES, CHEESES, TOPPINGS, COMBOS,
   SIZE_DEFAULT, DOUGH_DEFAULT, SAUCE_DEFAULT
@@ -673,13 +673,19 @@ function wireRecipes() {
 }
 
 /* ---------------- Cook-along overlay ---------------- */
-let cook = null; // { recipe, step: -1 = intro, timers: {} }
+let cook = null; // { recipe, step: -1 = intro, -2 = oven choice, mode: "oven"|"combi"|null }
 
 function openCook(recipeId) {
   const recipe = findRecipe(recipeId);
   if (!recipe) return;
-  cook = { recipe, step: -1 };
+  cook = { recipe, step: -1, mode: null };
   renderCook();
+}
+
+// Resolve a step for the active oven mode: combi overrides replace base fields.
+function resolveStep(step, mode) {
+  if (mode !== "combi" || !step.combi) return step;
+  return { ...step, ...step.combi, learn: step.learn, video: step.video, title: step.title };
 }
 
 function renderCook() {
@@ -702,6 +708,22 @@ function renderCook() {
         <ul class="ingredients">${r.ingredients.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
         <button class="btn btn-primary btn-block" data-start style="margin-top:16px">Start cooking</button>
       </div>`;
+  } else if (i === -2) {
+    body = `
+      <div class="cook-pad">
+        <div class="cook-stepline">Before we start</div>
+        <h2>What are you baking in?</h2>
+        <p class="cook-intro">Preheat, temperature and timing all change with your oven — pick yours and every step adapts.</p>
+        <div class="mode-pick">
+          ${OVEN_MODES.map(m => `
+          <button class="mode-card" data-mode="${m.id}">
+            <span class="mode-icon">${m.icon}</span>
+            <span class="mode-body"><strong>${esc(m.title)}</strong><small>${esc(m.desc)}</small></span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </button>`).join("")}
+        </div>
+        <p class="cook-note" style="margin-top:14px"><strong>Marco says:</strong> No steel? No shame. The combi path is tuned for a Panasonic CS89-class convection microwave — 230 °C max, enamel shelf, grill finish.</p>
+      </div>`;
   } else if (i >= total) {
     body = `
       <div class="cook-pad cook-finish">
@@ -712,12 +734,15 @@ function renderCook() {
         <button class="btn btn-secondary btn-block" data-close-cook style="margin-top:10px">Done</button>
       </div>`;
   } else {
-    const step = r.steps[i];
+    const step = resolveStep(r.steps[i], cook.mode);
+    const modeLabel = cook.mode === "combi" ? "Combi microwave" : "Full-size oven";
     body = `
       <div class="cook-pad">
-        <div class="cook-stepline">Step ${i + 1} of ${total}</div>
+        <div class="cook-stepline">Step ${i + 1} of ${total} <button class="mode-chip" data-remode title="Change oven type">${cook.mode === "combi" ? "📦" : "🔥"} ${modeLabel}</button></div>
         <div class="progress" style="margin-bottom:18px"><i style="width:${Math.round((i + 1) / total * 100)}%"></i></div>
         <h2>${esc(step.title)}</h2>
+        ${step.video ? `
+        <video class="cook-video" src="${step.video}" autoplay muted loop playsinline preload="metadata"></video>` : ""}
         ${step.use && step.use.length ? `
         <div class="cook-use">
           <div class="cook-use-label">You'll need</div>
@@ -747,16 +772,21 @@ function renderCook() {
     <div class="cook-scroll">${body}</div>
     ${i >= 0 && i < total ? `
     <div class="cook-nav">
-      <button class="btn btn-secondary" data-prev ${i === 0 ? "disabled" : ""}>Back</button>
+      <button class="btn btn-secondary" data-prev>Back</button>
       <button class="btn btn-primary" data-next>${i === total - 1 ? "Finish" : "Next step"}</button>
     </div>` : ""}
   </div>`;
 
   $$("[data-close-cook]", overlayRoot).forEach(b => b.addEventListener("click", () => { cook = null; stopTimer(); closeOverlays(); }));
   const startBtn = $("[data-start]", overlayRoot);
-  if (startBtn) startBtn.addEventListener("click", () => { cook.step = 0; renderCook(); });
+  if (startBtn) startBtn.addEventListener("click", () => { cook.step = -2; renderCook(); });
+  $$("[data-mode]", overlayRoot).forEach(b => b.addEventListener("click", () => {
+    cook.mode = b.dataset.mode; cook.step = 0; renderCook();
+  }));
+  const remode = $("[data-remode]", overlayRoot);
+  if (remode) remode.addEventListener("click", () => { stopTimer(); cook.step = -2; renderCook(); });
   const prev = $("[data-prev]", overlayRoot);
-  if (prev) prev.addEventListener("click", () => { cook.step--; renderCook(); });
+  if (prev) prev.addEventListener("click", () => { cook.step = cook.step === 0 ? -2 : cook.step - 1; renderCook(); });
   const next = $("[data-next]", overlayRoot);
   if (next) next.addEventListener("click", () => { cook.step++; renderCook(); });
   const learnBtn = $("[data-learn]", overlayRoot);
@@ -764,12 +794,13 @@ function renderCook() {
     const st = r.steps[cook.step];
     if (st && st.learn) { stopTimer(); openStory(st.learn.pack, st.learn.lesson, st.learn.slide || 0, true); }
   });
+  const modeLog = cook.mode === "combi" ? " (combi microwave)" : "";
   const logBtn = $("[data-log]", overlayRoot);
   if (logBtn) logBtn.addEventListener("click", () => {
     state.journal.unshift({
       id: Date.now(), type: "bake",
       title: r.title,
-      detail: `Cooked along with the ${r.title} recipe.`,
+      detail: `Cooked along with the ${r.title} recipe${modeLog}.`,
       ts: Date.now()
     });
     save();
