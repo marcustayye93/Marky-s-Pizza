@@ -74,7 +74,7 @@ function fmtWhen(ts) {
 }
 
 /* ---------------- Router ---------------- */
-const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pies: "Pies" };
+const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pasta: "Pasta" };
 
 function currentRoute() {
   const h = (location.hash || "#home").slice(1);
@@ -86,11 +86,11 @@ function render() {
   const route = currentRoute();
   $("#pageTitle").textContent = TITLES[route];
   $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route));
-  const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pies: viewPies };
+  const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta };
   app.innerHTML = views[route]();
   app.scrollTop = 0;
   window.scrollTo({ top: 0 });
-  const after = { learn: wireLearn, build: wireBuild, recipes: wireRecipes, bake: wireBake, journal: wireJournal, home: wireHome, pies: wirePies };
+  const after = { learn: wireLearn, build: wireBuild, recipes: wireRecipes, bake: wireBake, journal: wireJournal, home: wireHome, pasta: wirePasta };
   after[route]();
 }
 
@@ -173,13 +173,13 @@ function viewHome() {
   </section>
 
   <section class="section">
-    <div class="card pies-teaser" data-go="pies" role="button" tabindex="0">
+    <div class="card pies-teaser" data-go="pasta" role="button" tabindex="0">
       <div>
         <span class="chip chip-butter">Coming soon</span>
-        <h3 style="margin:8px 0 4px">Marco's Pies</h3>
-        <p>Something buttery is happening in the back kitchen…</p>
+        <h3 style="margin:8px 0 4px">Marco's Pasta</h3>
+        <p>Something silky is simmering in the back kitchen…</p>
       </div>
-      <img src="./images/mascot-pies.jpg" alt="Marco hiding a pie behind his back" loading="lazy" />
+      <img src="./images/mascot-pasta.jpg" alt="Marco twirling a forkful of spaghetti" loading="lazy" />
     </div>
   </section>`;
 }
@@ -976,27 +976,27 @@ function wireJournal() {
 }
 
 /* ================================================================
-   PIES — coming soon teaser
+   PASTA — coming soon teaser
 ================================================================ */
-function viewPies() {
+function viewPasta() {
   return `
   <section class="section">
     <div class="card pies-hero">
-      <img src="./images/mascot-pies.jpg" alt="Marco the mascot hiding a pie behind his back" />
+      <img src="./images/mascot-pasta.jpg" alt="Marco the mascot twirling a forkful of spaghetti" />
       <div class="pies-copy">
         <span class="chip chip-butter">Coming soon</span>
-        <h2>Marco's Pies</h2>
-        <p>Buttery, flaky, golden — the pastry chapter of the club is in the test kitchen right now. Lamination science, blind-baking without tears, and fillings that don't flood.</p>
-        <p class="hint">Pizza first, pies next. That's the natural order of dough.</p>
-        <button class="btn btn-primary" id="notifyPies">Notify me (Marco's way)</button>
+        <h2>Marco's Pasta</h2>
+        <p>Silky egg dough, sauces that actually cling, and the science of al dente — the pasta chapter of the club is bubbling away in the test kitchen right now. Fresh sheets, filled shapes, and sauce pairings that would make a nonna nod.</p>
+        <p class="hint">Pizza first, pasta next. That's the natural order of dough.</p>
+        <button class="btn btn-primary" id="notifyPasta">Notify me (Marco's way)</button>
       </div>
     </div>
   </section>`;
 }
 
-function wirePies() {
-  const btn = $("#notifyPies");
-  if (btn) btn.addEventListener("click", () => toast("Marco will shout very loudly from the kitchen when pies are ready."));
+function wirePasta() {
+  const btn = $("#notifyPasta");
+  if (btn) btn.addEventListener("click", () => toast("Marco will shout very loudly from the kitchen when the pasta is ready."));
 }
 
 /* ================================================================
