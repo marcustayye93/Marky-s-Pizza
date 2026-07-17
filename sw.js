@@ -7,7 +7,7 @@
  * On each release, also bump the ?b= query on css/js links in index.html so
  * the browser HTTP cache (independent of this SW) fetches fresh code too.
  */
-const VERSION = "mpc-v11";
+const VERSION = "mpc-v12";
 const CORE = [
   "./",
   "./index.html",
@@ -18,6 +18,8 @@ const CORE = [
   "./js/share.js",
   "./js/data/lessons.js",
   "./js/data/recipes.js",
+  "./js/data/pasta-lessons.js",
+  "./js/data/pasta-recipes.js",
   "./js/data/builder.js",
   "./js/data/doughs.js",
   "./icons/icon-192.png",
@@ -25,7 +27,8 @@ const CORE = [
   "./icons/icon-512.png",
   "./icons/favicon-48.png",
   "./images/mascot-hero.jpg",
-  "./images/hero-margherita.jpg"
+  "./images/hero-margherita.jpg",
+  "./images/pasta/pasta-hero.jpg"
 ];
 
 self.addEventListener("install", e => {

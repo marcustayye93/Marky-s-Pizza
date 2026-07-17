@@ -4,6 +4,11 @@
 // ================================================================
 import { PACKS, TOTAL_LESSONS, findLesson } from "./data/lessons.js";
 import { RECIPES, findRecipe, OVEN_MODES } from "./data/recipes.js";
+import { PASTA_PACKS, TOTAL_PASTA_LESSONS, findPastaLesson } from "./data/pasta-lessons.js";
+import { PASTA_RECIPES, findPastaRecipe } from "./data/pasta-recipes.js";
+// Unified lookups across pizza + pasta content
+const findAnyLesson = (packId, lessonId) => findLesson(packId, lessonId) || findPastaLesson(packId, lessonId);
+const findAnyRecipe = id => findRecipe(id) || findPastaRecipe(id);
 import {
   SIZES, DOUGHS, SAUCES, CHEESES, TOPPINGS, COMBOS,
   SIZE_DEFAULT, DOUGH_DEFAULT, SAUCE_DEFAULT
@@ -311,9 +316,9 @@ function viewHome() {
   <section class="section">
     <div class="card pies-teaser" data-go="pasta" role="button" tabindex="0">
       <div>
-        <span class="chip chip-butter">Coming soon</span>
+        <span class="chip chip-butter">New</span>
         <h3 style="margin:8px 0 4px">Marco's Pasta</h3>
-        <p>Something silky is simmering in the back kitchen…</p>
+        <p>Fresh dough, al dente science, squid ink secrets — the pasta chapter is open.</p>
       </div>
       <img src="./images/mascot-pasta.jpg" alt="Marco twirling a forkful of spaghetti" loading="lazy" />
     </div>
@@ -435,7 +440,7 @@ function openChapterMenu(packId) {
 let story = null;
 
 function openStory(packId, lessonId, slideIdx = 0, returnToCook = false) {
-  const found = findLesson(packId, lessonId);
+  const found = findAnyLesson(packId, lessonId);
   if (!found) return;
   story = { packId, lessonId, slideIdx, returnToCook, ...found };
   renderStory();
@@ -914,7 +919,7 @@ function wireRecipes() {
 let cook = null; // { recipe, step: -1 = intro, -2 = oven choice, mode: "oven"|"combi"|null }
 
 function openCook(recipeId) {
-  const recipe = findRecipe(recipeId);
+  const recipe = findAnyRecipe(recipeId);
   if (!recipe) return;
   cook = { recipe, step: -1, mode: null };
   renderCook();
@@ -993,7 +998,7 @@ function renderCook() {
     const modeLabel = cook.mode === "combi" ? "Combi microwave" : "Full-size oven";
     body = `
       <div class="cook-pad">
-        <div class="cook-stepline">Step ${i + 1} of ${total} <button class="mode-chip" data-remode title="Change oven type">${cook.mode === "combi" ? "📦" : "🔥"} ${modeLabel}</button></div>
+        <div class="cook-stepline">Step ${i + 1} of ${total} ${r.noOven ? `<span class="mode-chip" style="cursor:default">🍳 Stovetop</span>` : `<button class="mode-chip" data-remode title="Change oven type">${cook.mode === "combi" ? "📦" : "🔥"} ${modeLabel}</button>`}</div>
         <div class="progress" style="margin-bottom:18px"><i style="width:${Math.round((i + 1) / total * 100)}%"></i></div>
         <h2>${esc(step.title)}</h2>
         ${step.video ? `
@@ -1034,14 +1039,18 @@ function renderCook() {
 
   $$("[data-close-cook]", overlayRoot).forEach(b => b.addEventListener("click", () => { cook = null; stopTimer(); closeOverlays(); }));
   const startBtn = $("[data-start]", overlayRoot);
-  if (startBtn) startBtn.addEventListener("click", () => { cook.step = -2; renderCook(); });
+  if (startBtn) startBtn.addEventListener("click", () => {
+    // Stovetop-only recipes skip the oven-choice screen
+    if (cook.recipe.noOven) { cook.mode = "oven"; cook.step = 0; } else { cook.step = -2; }
+    renderCook();
+  });
   $$("[data-mode]", overlayRoot).forEach(b => b.addEventListener("click", () => {
     cook.mode = b.dataset.mode; cook.step = 0; renderCook();
   }));
   const remode = $("[data-remode]", overlayRoot);
   if (remode) remode.addEventListener("click", () => { stopTimer(); cook.step = -2; renderCook(); });
   const prev = $("[data-prev]", overlayRoot);
-  if (prev) prev.addEventListener("click", () => { cook.step = cook.step === 0 ? -2 : cook.step - 1; renderCook(); });
+  if (prev) prev.addEventListener("click", () => { cook.step = cook.step === 0 ? (cook.recipe.noOven ? -1 : -2) : cook.step - 1; renderCook(); });
   const next = $("[data-next]", overlayRoot);
   if (next) next.addEventListener("click", () => { cook.step++; renderCook(); });
   const learnBtn = $("[data-learn]", overlayRoot);
@@ -1865,27 +1874,95 @@ function applyCalcParams(params) {
 }
 
 /* ================================================================
-   PASTA — coming soon teaser
+   PASTA — lesson packs + cook-along recipes
 ================================================================ */
+function pastaLessonsDone() {
+  return PASTA_PACKS.reduce((n, p) => n + packDone(p), 0);
+}
+
 function viewPasta() {
+  const done = pastaLessonsDone();
   return `
   <section class="section">
-    <div class="card pies-hero">
-      <img src="./images/mascot-pasta.jpg" alt="Marco the mascot twirling a forkful of spaghetti" />
-      <div class="pies-copy">
-        <span class="chip chip-butter">Coming soon</span>
-        <h2>Marco's Pasta</h2>
-        <p>Silky egg dough, sauces that actually cling, and the science of al dente — the pasta chapter of the club is bubbling away in the test kitchen right now. Fresh sheets, filled shapes, and sauce pairings that would make a nonna nod.</p>
-        <p class="hint">Pizza first, pasta next. That's the natural order of dough.</p>
-        <button class="btn btn-primary" id="notifyPasta">Notify me (Marco's way)</button>
+    <div class="hero">
+      <img src="./images/pasta/pasta-hero.jpg" alt="Fresh tagliatelle nests on a floured bench" fetchpriority="high" />
+      <div class="hero-copy">
+        <span class="chip">The pasta chapter is open</span>
+        <h2>Silky dough, sauces that cling, and the science of al dente.</h2>
+        <p>From the golden egg-to-flour ratio to jet-black squid ink dough — learn the why, then cook along step by step.</p>
       </div>
     </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><h2>Pasta School</h2><p>Four packs, ${TOTAL_PASTA_LESSONS} lessons — ${done ? `${done} done, keep going.` : "start with the egg and the flour."}</p></div>
+    </div>
+    ${PASTA_PACKS.map(pack => {
+      const pd = packDone(pack);
+      const pct = Math.round(pd / pack.lessons.length * 100);
+      return `
+      <div class="card pack-card" style="margin-bottom:14px">
+        <img src="${pack.image}" alt="${esc(pack.title)}" loading="lazy" />
+        <div class="pack-body">
+          <h3>${esc(pack.title)}</h3>
+          <p>${esc(pack.subtitle)}</p>
+          <div class="progress"><i style="width:${pct}%"></i></div>
+          <div class="pack-meta">
+            <span>${pd}/${pack.lessons.length} lessons · ~${pack.lessons.reduce((n, l) => n + l.minutes, 0)} min</span>
+            <button class="btn btn-secondary btn-small" data-pasta-pack="${pack.id}">${pd === 0 ? "Open pack" : pd === pack.lessons.length ? "Review" : "Continue"}</button>
+          </div>
+        </div>
+      </div>`;
+    }).join("")}
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><h2>Pasta Recipes</h2><p>Cook-along mode, per-step ingredients, timers — pot on the stove, phone on the counter.</p></div>
+    </div>
+    ${PASTA_RECIPES.map(r => `
+    <div class="card media-card" data-cook-pasta="${r.id}" role="button" tabindex="0" style="margin-bottom:14px">
+      <img src="${r.image}" alt="${esc(r.title)}" loading="lazy" />
+      <div class="media-copy">
+        <h3>${esc(r.title)}</h3>
+        <p>${esc(r.tagline)}</p>
+        <div class="chips">${r.chips.map(c => `<span class="chip chip-terracotta">${esc(c)}</span>`).join("")}</div>
+      </div>
+    </div>`).join("")}
   </section>`;
 }
 
 function wirePasta() {
-  const btn = $("#notifyPasta");
-  if (btn) btn.addEventListener("click", () => toast("Marco will shout very loudly from the kitchen when the pasta is ready."));
+  $$("[data-pasta-pack]").forEach(btn => btn.addEventListener("click", () => openPastaChapterMenu(btn.dataset.pastaPack)));
+  $$("[data-cook-pasta]").forEach(el => el.addEventListener("click", () => openCook(el.dataset.cookPasta)));
+}
+
+function openPastaChapterMenu(packId) {
+  const pack = PASTA_PACKS.find(p => p.id === packId);
+  if (!pack) return;
+  overlayRoot.innerHTML = `
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet" role="dialog" aria-label="${esc(pack.title)} chapters">
+      <div class="sheet-grab"></div>
+      <h3>${esc(pack.title)}</h3>
+      <p>${esc(pack.subtitle)} — pick a chapter, jump straight in.</p>
+      <div class="option-list">
+        ${pack.lessons.map((l, i) => {
+          const done = !!state.completedLessons[`${pack.id}/${l.id}`];
+          return `
+          <button class="option-item ${done ? "done" : ""}" data-lesson="${l.id}">
+            <span class="option-num">${done ? "✓" : i + 1}</span>
+            <span><strong>${esc(l.title)}</strong><small>${esc(l.summary)} · ${l.minutes} min</small></span>
+            ${done ? `<svg class="option-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m5 13 4 4L19 7"/></svg>` : ""}
+          </button>`;
+        }).join("")}
+      </div>
+    </div>`;
+  $("[data-close]", overlayRoot).addEventListener("click", closeOverlays);
+  $$("[data-lesson]", overlayRoot).forEach(btn =>
+    btn.addEventListener("click", () => openStory(pack.id, btn.dataset.lesson))
+  );
 }
 
 /* ================================================================

@@ -17,11 +17,11 @@ A playful, science-first Progressive Web App that teaches you to make excellent 
 | **Dough Lab** | 5 experimental dough recipes with baker's percentages, timelines, crust-profile meters and the science of fermentation — headlined by a tribute to Casa Vostra's Newpolitan®-style crust |
 | **Bake Guide** | Home oven protocols (fan vs conventional), hardware ranked, doneness cues |
 | **Journal** | Log designs, bakes and notes; export as JSON |
-| **Pasta** | Coming soon — the pasta chapter is in the test kitchen |
+| **Pasta** | Pasta School (4 packs, 9 lessons — incl. The Black Gold: Squid Ink with a Singapore sourcing guide) and 11 cook-along recipes from carbonara to squid ink tagliolini, lasagne and umami mushroom soup |
 
 ## Design
 
-Vintage 1930s rubber-hose cartoon branding (meet **Marco**, the club mascot) set in a bright Italian-kitchen palette of warm whites, cream and terracotta. All food photography follows a real-food style guide: natural light, honest imperfections, no stock-photo gloss.
+Vintage 1930s rubber-hose cartoon branding (meet **Marco**, the club mascot) set in a bright Italian-kitchen palette of warm whites, cream and terracotta. All food photography follows a single art direction: a daylit home kitchen with white marble, subway tile and blue/terracotta props, styled like a professional shoot with a set designer — curated and polished, true-to-life colour, with just a few deliberate crumbs for personality.
 
 ## Tech
 
