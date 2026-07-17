@@ -1032,3 +1032,96 @@ main{flex:1;padding:22px 16px calc(118px + var(--safe-bottom));animation:page-in
 .calc-slider strong{font-family:var(--font-display);color:var(--terracotta)}
 .calc-slider input[type="range"]{width:100%;accent-color:var(--terracotta)}
 .calc-result{background:var(--cream)}
+
+/* ================================================================
+   PHASE 3 — sharing, badges, backup
+================================================================ */
+
+/* Share-card offer sheet (appears after logging a bake) */
+.share-offer{
+  position:fixed;
+  left:12px;right:12px;
+  bottom:calc(92px + var(--safe-bottom));
+  z-index:60;
+  max-width:696px;margin:0 auto;
+  background:var(--cream);
+  border:var(--stroke) solid var(--ink);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--pop);
+  padding:14px 16px;
+  animation:shareOfferIn .35s var(--ease-bounce) both;
+}
+@keyframes shareOfferIn{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.share-offer h4{margin:0 0 4px;font-family:var(--font-display);font-size:17px}
+.share-offer p{margin:0 0 10px;font-size:13.5px;color:var(--ink-soft)}
+.share-offer-btns{display:flex;gap:8px}
+.share-offer-btns .btn{flex:1}
+
+/* Club badges strip in the Journal */
+.badge-strip{
+  display:flex;gap:10px;
+  overflow-x:auto;
+  padding:4px 2px 10px;
+  scrollbar-width:none;
+}
+.badge-strip::-webkit-scrollbar{display:none}
+.club-badge{
+  flex:0 0 auto;
+  width:92px;
+  text-align:center;
+  background:var(--surface);
+  border:var(--stroke-thin) solid var(--ink);
+  border-radius:var(--radius-md);
+  box-shadow:var(--pop-sm);
+  padding:10px 6px;
+}
+.club-badge .cb-icon{font-size:26px;display:block;line-height:1.2}
+.club-badge .cb-name{
+  display:block;margin-top:4px;
+  font-family:var(--font-display);font-size:11.5px;line-height:1.15;
+}
+.club-badge .cb-state{display:block;font-size:10px;color:var(--muted);margin-top:2px;font-weight:600}
+.club-badge.locked{opacity:.45;box-shadow:2px 2px 0 var(--ink);filter:grayscale(.4)}
+.club-badge.earned{background:var(--butter)}
+
+/* Journal entry actions row */
+.journal-actions{display:flex;gap:8px;margin-top:8px}
+.journal-share{
+  font-size:12.5px;font-weight:700;
+  border:var(--stroke-thin) solid var(--ink);
+  background:var(--surface);
+  border-radius:99px;
+  padding:5px 12px;
+  box-shadow:2px 2px 0 var(--ink);
+}
+.journal-share:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink)}
+
+/* Backup / restore sheet */
+.backup-note{
+  background:var(--butter-soft);
+  border:2px dashed var(--ink);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
+  font-size:12.5px;
+  margin:10px 0;
+  line-height:1.5;
+}
+
+/* Onboarding name input */
+.ob-name{display:block;text-align:left;margin:4px 0 12px}
+.ob-name span{
+  display:block;
+  font-weight:800;font-size:13.5px;
+  margin-bottom:5px;
+}
+.ob-name span small{font-weight:500;color:var(--muted)}
+.ob-name input{
+  width:100%;
+  border:var(--stroke-thin) solid var(--ink);
+  border-radius:12px;
+  padding:11px 13px;
+  font:inherit;font-size:15px;
+  background:var(--surface);
+  box-shadow:inset 2px 2px 0 rgba(60,32,16,.07);
+}
+.ob-name input:focus{outline:3px solid var(--terracotta);outline-offset:1px}

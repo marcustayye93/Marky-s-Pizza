@@ -9,6 +9,7 @@ import {
   SIZE_DEFAULT, DOUGH_DEFAULT, SAUCE_DEFAULT
 } from "./data/builder.js";
 import { DOUGHS as DOUGH_RECIPES } from "./data/doughs.js";
+import { makeBakeCard, shareCard, shareText, encodeParams, parseHashParams } from "./share.js";
 
 /* ---------------- State ---------------- */
 const STORE_KEY = "mpc-state";
@@ -16,6 +17,7 @@ const STORE_KEY = "mpc-state";
 const defaultState = () => ({
   schemaVersion: 1,
   onboarded: false,               // first-run welcome completed
+  name: null,                     // what Marco calls you (optional)
   kitchen: null,                  // "oven" | "combi" | "pizzaoven"
   celebrated: {},                 // one-time milestone flags
   completedLessons: {},           // { "packId/lessonId": true }
@@ -133,13 +135,16 @@ function fmtWhen(ts) {
 const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pasta: "Pasta", doughlab: "Dough Lab", calc: "Dough Calculator" };
 
 function currentRoute() {
-  const h = (location.hash || "#home").slice(1);
+  let h = (location.hash || "#home").slice(1);
+  const q = h.indexOf("?");
+  if (q !== -1) h = h.slice(0, q); // share/deep-link params ride after "?"
   return TITLES[h] ? h : "home";
 }
 
 function render() {
   closeOverlays();
   const route = currentRoute();
+  handleDeepLink(route); // consume any share/deep-link params before drawing
   $("#pageTitle").textContent = TITLES[route];
   $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route));
   const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta, doughlab: viewDoughLab, calc: viewCalc };
@@ -153,6 +158,29 @@ function render() {
 
 window.addEventListener("hashchange", render);
 $$(".nav-item").forEach(b => b.addEventListener("click", () => { location.hash = "#" + b.dataset.route; }));
+
+/* ---------------- Share deep links ----------------
+   Formats: #calc?p=2&s=m&st=newpolitan…  #build?sz=m&d=classic…  #recipes?cook=personal-margherita&from=Marcus */
+let pendingChallenge = null; // consumed after the recipes view wires up
+function handleDeepLink(route) {
+  const parsed = parseHashParams();
+  const params = parsed && parsed.params;
+  if (!params) return;
+  // Strip params from the hash without retriggering hashchange render loops.
+  const clean = "#" + route;
+  if (route === "calc" && applyCalcParams(params)) {
+    history.replaceState(null, "", clean);
+    setTimeout(() => toast(params.from ? `${params.from} sent you this dough mix. Marco already likes them.` : "A shared dough mix, loaded and ready."), 400);
+  } else if (route === "build" && applyBuildParams(params)) {
+    history.replaceState(null, "", clean);
+    setTimeout(() => toast(params.from ? `${params.from} challenges your taste buds. Tweak away.` : "A shared pizza design, loaded. Improve it if you dare."), 400);
+  } else if (route === "recipes" && params.cook) {
+    history.replaceState(null, "", clean);
+    pendingChallenge = params;
+  } else {
+    history.replaceState(null, "", clean);
+  }
+}
 
 /* ================================================================
    HOME
@@ -188,7 +216,7 @@ function viewHome() {
     <div class="hero">
       <img src="./images/hero-margherita.jpg" alt="Homemade margherita pizza on a floured peel" fetchpriority="high" />
       <div class="hero-copy">
-        <span class="chip">Ciao, welcome to the club</span>
+        <span class="chip">${state.name ? `Ciao, ${esc(state.name)}!` : "Ciao, welcome to the club"}</span>
         <h2>Great pizza is a science you can taste.</h2>
         <p>Learn the why, build with intent, and bake like you mean it — all in a normal home oven.</p>
         <button class="btn btn-primary" data-go="learn">Start learning</button>
@@ -577,6 +605,7 @@ function viewBuild() {
     <div class="card insight-card" id="builderInsights">${insightsHtml()}</div>
 
     <button class="btn btn-primary btn-block" id="saveBuild" style="margin-top:14px">Save this pizza to my Journal</button>
+    <button class="btn btn-secondary btn-block" id="shareBuild" style="margin-top:10px">📤 Share my pizza</button>
   </section>`;
 }
 
@@ -775,6 +804,44 @@ function wireBuild() {
     save();
     toast("Saved to your Journal. Now go bake it!");
   });
+
+  $("#shareBuild").addEventListener("click", async () => {
+    const { size, dough, sauce, cheeses, toppings } = builderPicks();
+    const b = state.builder;
+    const url = encodeParams("build", {
+      sz: b.size, d: b.dough, sc: b.sauce,
+      ch: b.cheeses.join("."), t: b.toppings.join("."),
+      from: state.name || ""
+    });
+    const desc = toppings.length ? toppings.map(t => t.label).join(" + ") : (sauce.id === "bianca" ? "a bianca" : "a margherita-style");
+    const res = await shareText(
+      "Marco's Pizza Club — my pizza design",
+      `\u{1F355} ${state.name ? state.name + " designed" : "I designed"} ${desc} on ${dough.label.toLowerCase()} dough in Marco's Pizza Builder. Open it, tweak it, or dare to improve it:`,
+      url
+    );
+    if (res === "copied") toast("Pizza link copied \u2014 challenge someone's taste buds.");
+    else if (res === "shared") toast("Design shared. Marco approves of showing off.");
+  });
+}
+
+/** Prefill the builder from a shared deep link (#build?sz=m&d=classic&sc=red&ch=a.b&t=x.y). */
+function applyBuildParams(params) {
+  if (!params) return false;
+  let applied = false;
+  const b = state.builder;
+  if (params.sz && SIZES.some(s => s.id === params.sz)) { b.size = params.sz; applied = true; }
+  if (params.d && DOUGHS.some(d => d.id === params.d)) { b.dough = params.d; applied = true; }
+  if (params.sc && SAUCES.some(s => s.id === params.sc)) { b.sauce = params.sc; applied = true; }
+  if (params.ch != null) {
+    const ids = params.ch ? params.ch.split(".").filter(id => CHEESES.some(c => c.id === id)) : [];
+    b.cheeses = ids.slice(0, 2); applied = true;
+  }
+  if (params.t != null) {
+    const ids = params.t ? params.t.split(".").filter(id => TOPPINGS.some(tp => tp.id === id)) : [];
+    b.toppings = ids.slice(0, 3); applied = true;
+  }
+  if (applied) save();
+  return applied;
 }
 
 function refreshBuilder() {
@@ -830,6 +897,17 @@ function wireRecipes() {
   $$("[data-cook]").forEach(el => el.addEventListener("click", () => openCook(el.dataset.cook)));
   const lab = $("[data-go-lab]");
   if (lab) lab.addEventListener("click", () => { location.hash = "#doughlab"; });
+  if (pendingChallenge) {
+    const p = pendingChallenge;
+    pendingChallenge = null;
+    const target = findRecipe(p.cook);
+    if (target) {
+      setTimeout(() => {
+        openCook(target.id);
+        toast(p.from ? `${p.from} challenged you to make the ${target.title}. Show them how it's done.` : `You've been challenged: the ${target.title}. Marco believes in you.`);
+      }, 350);
+    }
+  }
 }
 
 /* ---------------- Cook-along overlay ---------------- */
@@ -907,7 +985,8 @@ function renderCook() {
           <textarea class="note-input" id="bakeNote" rows="2" placeholder="Anything to remember? e.g. rim was perfect, centre slightly wet"></textarea>
         </div>
         <button class="btn btn-primary btn-block" data-log>Log this bake</button>
-        <button class="btn btn-secondary btn-block" data-close-cook style="margin-top:10px">Done — skip the log</button>
+        <button class="btn btn-secondary btn-block" data-challenge style="margin-top:10px">📣 Challenge a friend to this</button>
+        <button class="btn btn-ghost btn-block btn-sm" data-close-cook style="margin-top:8px">Done — skip the log</button>
       </div>`;
   } else {
     const step = resolveStep(r.steps[i], cook.mode);
@@ -1020,8 +1099,23 @@ function renderCook() {
     if (n === 1) celebrateOnce("first-bake", "Your first bake is in the book. Marco is SO proud.");
     else if (n === 5) celebrateOnce("five-bakes", "5 bakes logged — you're officially a regular at the club.");
     else if (n === 10) celebrateOnce("ten-bakes", "10 bakes! Marco is naming a table after you.");
+    else if (n === 25) celebrateOnce("twentyfive-bakes", "25 bakes. Marco has hung your photo behind the counter.");
     else { confetti(); toast("Bake logged. Marco is proud of you."); }
     if (currentRoute() === "journal") render();
+    // Offer a share card right after logging — the proudest moment.
+    setTimeout(() => offerShareCard(entry), 700);
+  });
+  const challengeBtn = $("[data-challenge]", overlayRoot);
+  if (challengeBtn) challengeBtn.addEventListener("click", async () => {
+    const url = encodeParams("recipes", { cook: r.id, from: state.name || "" });
+    const who = state.name ? `${state.name} just made` : "A friend just made";
+    const res = await shareText(
+      "Marco's Pizza Club challenge",
+      `\u{1F355} ${who} the ${r.title} with Marco's Pizza Club — and challenges you to beat it. The app walks you through every minute:`,
+      url
+    );
+    if (res === "copied") toast("Challenge link copied — paste it anywhere.");
+    else if (res === "shared") toast("Challenge sent. No pressure. (Some pressure.)");
   });
   wireTimer();
 }
@@ -1261,8 +1355,10 @@ function viewJournal() {
   <section class="section">
     <div class="section-head">
       <div><h2>Bake Journal</h2><p>Every bake teaches something — if you write it down.</p></div>
-      ${entries.length ? `<button class="btn btn-ghost" id="exportJournal">Export</button>` : ""}
+      <button class="btn btn-ghost" id="backupMenu" aria-label="Backup and restore">Backup</button>
     </div>
+
+    ${clubBadgesHtml()}
 
     ${photos.length ? `
     <div class="bake-grid">
@@ -1302,7 +1398,10 @@ function viewJournal() {
         <div class="journal-body">
           <div class="journal-head">
             <strong>${esc(e.title)}</strong>
-            <button class="journal-del" data-del="${e.id}" aria-label="Delete entry"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg></button>
+            <span class="journal-actions">
+              ${e.type === "bake" ? `<button class="journal-share" data-share-card="${e.id}" aria-label="Make a share card" title="Make a share card"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg></button>` : ""}
+              <button class="journal-del" data-del="${e.id}" aria-label="Delete entry"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg></button>
+            </span>
           </div>
           ${e.photo ? `<img class="journal-photo" src="${e.photo}" alt="Photo for ${esc(e.title)}" loading="lazy" />` : ""}
           <p class="journal-detail">${esc(e.detail).replace(/\n/g, "<br>")}</p>
@@ -1340,15 +1439,108 @@ function wireJournal() {
     render();
     toast("Entry deleted.");
   }));
-  const exp = $("#exportJournal");
-  if (exp) exp.addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(state.journal, null, 2)], { type: "application/json" });
+  const backupBtn = $("#backupMenu");
+  if (backupBtn) backupBtn.addEventListener("click", openBackupSheet);
+  $$("[data-share-card]").forEach(btn => btn.addEventListener("click", async () => {
+    const entry = state.journal.find(e => String(e.id) === btn.dataset.shareCard);
+    if (entry) await runShareCard(entry, btn);
+  }));
+}
+
+/* ---------------- Sharing: bake cards & backup ---------------- */
+async function runShareCard(entry, btn) {
+  const original = btn ? btn.innerHTML : null;
+  if (btn) { btn.disabled = true; btn.innerHTML = "\u23F3"; }
+  try {
+    const blob = await makeBakeCard(entry);
+    if (!blob) throw new Error("canvas");
+    const res = await shareCard(blob, "marcos-pizza-club-bake.png", `\u{1F355} ${entry.title} \u2014 fresh from my oven, with Marco's Pizza Club.`);
+    if (res === "downloaded") toast("Share card saved \u2014 check your downloads.");
+    else if (res === "shared") toast("Card shared. Marco is showing everyone.");
+  } catch {
+    toast("Couldn't build the card \u2014 try again?");
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+  }
+}
+
+function offerShareCard(entry) {
+  // Gentle post-log offer, never forced: a toast-sized action card.
+  const holder = document.createElement("div");
+  holder.className = "share-offer";
+  holder.setAttribute("role", "dialog");
+  holder.setAttribute("aria-label", "Share your bake");
+  holder.innerHTML = `
+    <p><strong>Nice one!</strong> Want a little card of this bake for the family chat?</p>
+    <div class="share-offer-btns">
+      <button class="btn btn-primary btn-sm" data-yes>\u{1F4E4} Make a share card</button>
+      <button class="btn btn-ghost btn-sm" data-no>Not now</button>
+    </div>`;
+  document.body.appendChild(holder);
+  const close = () => holder.remove();
+  holder.querySelector("[data-yes]").addEventListener("click", async () => { close(); await runShareCard(entry, null); });
+  holder.querySelector("[data-no]").addEventListener("click", close);
+  setTimeout(() => { if (document.body.contains(holder)) close(); }, 12000);
+}
+
+const BADGES = [
+  { key: "first-bake", icon: "\u{1F355}", label: "First bake", need: s => bakesLogged() >= 1 },
+  { key: "five-bakes", icon: "\u{1F396}\uFE0F", label: "Club regular", need: s => bakesLogged() >= 5 },
+  { key: "ten-bakes", icon: "\u{1F3C6}", label: "House favourite", need: s => bakesLogged() >= 10 },
+  { key: "twentyfive-bakes", icon: "\u{1F451}", label: "Pizza royalty", need: s => bakesLogged() >= 25 },
+  { key: "school-done", icon: "\u{1F393}", label: "Pizza School grad", need: s => lessonsDoneCount() >= TOTAL_LESSONS }
+];
+function clubBadgesHtml() {
+  const earned = BADGES.filter(b => b.need(state));
+  if (!earned.length) return "";
+  return `<div class="badge-strip" aria-label="Club badges">${earned.map(b => `<span class="club-badge" title="${esc(b.label)}"><i>${b.icon}</i>${esc(b.label)}</span>`).join("")}</div>`;
+}
+
+function openBackupSheet() {
+  const holder = document.createElement("div");
+  holder.className = "share-offer backup-sheet";
+  holder.setAttribute("role", "dialog");
+  holder.setAttribute("aria-label", "Backup and restore journal");
+  holder.innerHTML = `
+    <p><strong>Your journal, your dough.</strong> Back it up to a file, or restore one from another device.</p>
+    <div class="share-offer-btns">
+      <button class="btn btn-primary btn-sm" data-backup>\u2B07\uFE0F Back up journal</button>
+      <label class="btn btn-secondary btn-sm" style="cursor:pointer">\u2B06\uFE0F Restore<input type="file" accept="application/json,.json" hidden data-restore /></label>
+      <button class="btn btn-ghost btn-sm" data-no>Close</button>
+    </div>`;
+  document.body.appendChild(holder);
+  const close = () => holder.remove();
+  holder.querySelector("[data-no]").addEventListener("click", close);
+  holder.querySelector("[data-backup]").addEventListener("click", () => {
+    const payload = { app: "marcos-pizza-club", version: 1, exported: new Date().toISOString(), journal: state.journal, completedLessons: state.completedLessons, doughsTried: state.doughsTried || {} };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "marcos-pizza-club-journal.json";
+    a.download = "marcos-pizza-club-backup.json";
     a.click();
     URL.revokeObjectURL(a.href);
-    toast("Journal exported as JSON.");
+    toast("Backup saved \u2014 photos included.");
+    close();
+  });
+  holder.querySelector("[data-restore]").addEventListener("change", async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      const incoming = Array.isArray(data) ? data : (data.journal || []);
+      if (!Array.isArray(incoming)) throw new Error("bad format");
+      const have = new Set(state.journal.map(en => String(en.id)));
+      const added = incoming.filter(en => en && en.id && en.title && !have.has(String(en.id)));
+      state.journal = [...added, ...state.journal].sort((a, b) => b.ts - a.ts);
+      if (data.completedLessons) state.completedLessons = { ...data.completedLessons, ...state.completedLessons };
+      if (data.doughsTried) state.doughsTried = { ...data.doughsTried, ...(state.doughsTried || {}) };
+      save();
+      close();
+      render();
+      toast(added.length ? `Restored ${added.length} ${added.length === 1 ? "entry" : "entries"}. Welcome back!` : "Nothing new to restore \u2014 you already had it all.");
+    } catch {
+      toast("That file doesn't look like a club backup.");
+    }
   });
 }
 
@@ -1590,6 +1782,7 @@ function viewCalc() {
       </table>
       <p class="hint" style="margin-top:10px">Marco's method in one breath: mix → rest 20 min → knead or fold until smooth → ferment. For the full step-by-step, borrow the timeline from the closest Dough Lab recipe.</p>
       <button class="btn btn-primary btn-block" data-calc-save style="margin-top:12px">Save this mix to my Journal</button>
+      <button class="btn btn-secondary btn-block" data-calc-share style="margin-top:10px">📤 Share this mix</button>
     </div>
   </section>`;
 }
@@ -1637,6 +1830,38 @@ function wireCalc() {
     confetti();
     toast("Mix saved — check your Journal when you bake it.");
   });
+  $("[data-calc-share]").addEventListener("click", async () => {
+    const n = calcNumbers();
+    const p = { p: calc.pizzas, s: calc.size, st: calc.style };
+    if (calc.advanced) {
+      if (calc.hydration != null) p.h = calc.hydration;
+      if (calc.salt != null) p.sa = calc.salt;
+      if (calc.yeast != null) p.y = calc.yeast;
+    }
+    const url = encodeParams("calc", p);
+    const res = await shareText(
+      "Marco's Pizza Club — dough mix",
+      `\u{1F35E} My ${CALC_STYLES[calc.style].label} dough: ${n.flour} g flour \u00b7 ${n.water} g water (${n.hydration}%) \u00b7 ${n.saltG} g salt \u00b7 ${n.yeastG} g yeast. Open it in Marco's calculator:`,
+      url
+    );
+    if (res === "copied") toast("Mix link copied \u2014 send it to a dough friend.");
+    else if (res === "shared") toast("Mix shared. Spread the fermentation gospel.");
+  });
+}
+
+/** Prefill the calculator from a shared deep link (#calc?p=2&s=m&st=newpolitan&h=72...). */
+function applyCalcParams(params) {
+  if (!params) return false;
+  let applied = false;
+  const pz = parseInt(params.p, 10);
+  if (pz >= 1 && pz <= 12) { calc.pizzas = pz; applied = true; }
+  if (CALC_SIZES[params.s]) { calc.size = params.s; applied = true; }
+  if (CALC_STYLES[params.st]) { calc.style = params.st; calc.hydration = calc.salt = calc.yeast = null; applied = true; }
+  const h = parseFloat(params.h), sa = parseFloat(params.sa), y = parseFloat(params.y);
+  if (h >= 55 && h <= 90) { calc.hydration = h; calc.advanced = true; applied = true; }
+  if (sa >= 1.5 && sa <= 3.5) { calc.salt = sa; calc.advanced = true; applied = true; }
+  if (y >= 0.05 && y <= 1) { calc.yeast = y; calc.advanced = true; applied = true; }
+  return applied;
 }
 
 /* ================================================================
@@ -1701,7 +1926,9 @@ function renderOnboarding() {
     body = `
       <img class="onboard-mascot" src="./images/mascot-cheer.jpg" alt="Marco celebrating" />
       <h2>Perfetto${kit ? ` — ${esc(kit.label.toLowerCase())} it is` : ""}!</h2>
-      <p>One last thing: where shall we start? Both roads lead to great pizza.</p>
+      <label class="ob-name"><span>What should Marco call you? <small>(optional)</small></span>
+        <input type="text" id="obName" maxlength="24" placeholder="Your name" value="${esc(state.name || "")}" autocomplete="given-name" /></label>
+      <p>Where shall we start? Both roads lead to great pizza.</p>
       <button class="btn btn-primary btn-block" data-ob-lesson>\uD83D\uDCD6 Teach me something first <small style="display:block;font-weight:400">5-minute lesson on flour</small></button>
       <button class="btn btn-secondary btn-block" data-ob-bake>\uD83C\uDF55 Straight to the kitchen <small style="display:block;font-weight:400">Cook-along Personal Margherita</small></button>
       <button class="btn btn-ghost btn-block btn-sm" data-ob-skip>I'll just look around</button>`;
@@ -1716,6 +1943,8 @@ function renderOnboarding() {
   </div>`;
 
   const finish = (thenDo) => {
+    const nameEl = $("#obName", overlayRoot);
+    if (nameEl && nameEl.value.trim()) state.name = nameEl.value.trim().slice(0, 24);
     state.onboarded = true;
     save();
     onboard = null;
