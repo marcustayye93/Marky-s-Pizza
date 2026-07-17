@@ -4,8 +4,10 @@
  * no longer depend on it — JS/CSS/HTML use stale-while-revalidate, so returning
  * visitors get new content on their next visit automatically. Media (images,
  * video, fonts) stay cache-first for speed and offline use.
+ * On each release, also bump the ?b= query on css/js links in index.html so
+ * the browser HTTP cache (independent of this SW) fetches fresh code too.
  */
-const VERSION = "mpc-v7";
+const VERSION = "mpc-v9";
 const CORE = [
   "./",
   "./index.html",

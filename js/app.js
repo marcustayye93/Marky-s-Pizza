@@ -15,8 +15,11 @@ const STORE_KEY = "mpc-state";
 
 const defaultState = () => ({
   schemaVersion: 1,
+  onboarded: false,               // first-run welcome completed
+  kitchen: null,                  // "oven" | "combi" | "pizzaoven"
+  celebrated: {},                 // one-time milestone flags
   completedLessons: {},           // { "packId/lessonId": true }
-  journal: [],                    // [{id,type:'build'|'bake'|'note',title,detail,ts}]
+  journal: [],                    // [{id,type:'build'|'bake'|'note'|'dough',title,detail,ts,photo?,rating?}]
   builder: {
     size: SIZE_DEFAULT,
     dough: DOUGH_DEFAULT,
@@ -60,6 +63,47 @@ function esc(s) {
 
 const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/* ---------------- Celebrations ---------------- */
+function confetti() {
+  if (REDUCED_MOTION) return;
+  const holder = document.createElement("div");
+  holder.className = "confetti";
+  holder.setAttribute("aria-hidden", "true");
+  const colors = ["#C4552D", "#E8A33D", "#7A9E5F", "#2B2118", "#F2E8D5"];
+  for (let i = 0; i < 26; i++) {
+    const p = document.createElement("i");
+    p.style.left = (4 + Math.random() * 92) + "%";
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = (Math.random() * 0.35) + "s";
+    p.style.animationDuration = (1.1 + Math.random() * 0.8) + "s";
+    p.style.transform = `rotate(${Math.random() * 360}deg)`;
+    holder.appendChild(p);
+  }
+  document.body.appendChild(holder);
+  setTimeout(() => holder.remove(), 2400);
+}
+
+function celebrateOnce(key, msg) {
+  if (state.celebrated[key]) return;
+  state.celebrated[key] = true;
+  save();
+  confetti();
+  if (msg) toast(msg);
+}
+
+function bakesLogged() {
+  return state.journal.filter(e => e.type === "bake").length;
+}
+function weekWins() {
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  return state.journal.filter(e => e.ts > weekAgo).length;
+}
+const KITCHENS = {
+  oven: { label: "Home oven", icon: "\uD83C\uDF73", hint: "Steel or stone, full heat" },
+  combi: { label: "Combi microwave", icon: "\uD83D\uDCE6", hint: "Panasonic CS89 & friends" },
+  pizzaoven: { label: "Pizza oven", icon: "\uD83D\uDD25", hint: "400 \u00B0C+ — lucky you" }
+};
+
 let toastTimer;
 function toast(msg) {
   const el = $("#toast");
@@ -82,7 +126,7 @@ function fmtWhen(ts) {
 }
 
 /* ---------------- Router ---------------- */
-const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pasta: "Pasta", doughlab: "Dough Lab" };
+const TITLES = { home: "Home", learn: "Pizza School", build: "Pizza Builder", recipes: "Recipes", bake: "Bake Guide", journal: "Journal", pasta: "Pasta", doughlab: "Dough Lab", calc: "Dough Calculator" };
 
 function currentRoute() {
   const h = (location.hash || "#home").slice(1);
@@ -94,12 +138,12 @@ function render() {
   const route = currentRoute();
   $("#pageTitle").textContent = TITLES[route];
   $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route));
-  const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta, doughlab: viewDoughLab };
+  const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta, doughlab: viewDoughLab, calc: viewCalc };
   app.innerHTML = views[route]();
   app.scrollTop = 0;
   window.scrollTo({ top: 0 });
-  const after = { learn: wireLearn, build: wireBuild, recipes: wireRecipes, bake: wireBake, journal: wireJournal, home: wireHome, pasta: wirePasta, doughlab: wireDoughLab };
-  $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route || (route === "doughlab" && b.dataset.route === "recipes")));
+  const after = { learn: wireLearn, build: wireBuild, recipes: wireRecipes, bake: wireBake, journal: wireJournal, home: wireHome, pasta: wirePasta, doughlab: wireDoughLab, calc: wireCalc };
+  $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route || ((route === "doughlab" || route === "calc") && b.dataset.route === "recipes")));
   after[route]();
 }
 
@@ -109,12 +153,31 @@ $$(".nav-item").forEach(b => b.addEventListener("click", () => { location.hash =
 /* ================================================================
    HOME
 ================================================================ */
+function whatNext() {
+  const done = lessonsDoneCount();
+  const bakes = bakesLogged();
+  if (done === 0) {
+    return { eyebrow: "Your next move", title: "Read your first lesson", copy: "Five minutes on flour, and your dough will already thank you. Most people see a better crust after just 3 lessons.", cta: "Start Flour Power", act: "first-lesson" };
+  }
+  if (bakes === 0) {
+    return { eyebrow: "Your next move", title: "Bake your first pizza with Marco", copy: "You know some theory \u2014 now get flour on your hands. The Personal Margherita walks you through every minute.", cta: "Cook along tonight", act: "first-bake" };
+  }
+  if (done < TOTAL_LESSONS) {
+    const nx = findNextLesson();
+    return { eyebrow: "Your next move", title: `Keep going: ${nx.lesson.title}`, copy: `${TOTAL_LESSONS - done} lessons to go \u2014 you're closer to \u201Cwhy did that work?\u201D becoming \u201CI knew that would work.\u201D`, cta: "Continue learning", act: "continue" };
+  }
+  return { eyebrow: "Your next move", title: "Time to experiment", copy: "School's done \u2014 now the fun part. Mix a custom dough in the Calculator or chase that Casa Vostra crust in the Dough Lab.", cta: "Open the Dough Calculator", act: "calc" };
+}
+
 function viewHome() {
   const done = lessonsDoneCount();
   const builds = state.journal.filter(e => e.type === "build").length;
   const bakes = state.journal.filter(e => e.type === "bake").length;
   const nextLesson = findNextLesson();
   const featured = RECIPES[0];
+  const nxt = whatNext();
+  const wins = weekWins();
+  const kit = state.kitchen ? KITCHENS[state.kitchen] : null;
 
   return `
   <section class="section">
@@ -130,10 +193,31 @@ function viewHome() {
   </section>
 
   <section class="section">
+    <div class="card next-card" data-next-act="${nxt.act}" role="button" tabindex="0">
+      <div style="flex:1">
+        <span class="eyebrow" style="color:var(--terracotta)">${esc(nxt.eyebrow)}</span>
+        <h3 style="margin:4px 0 6px">${esc(nxt.title)}</h3>
+        <p>${esc(nxt.copy)}</p>
+        <span class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block">${esc(nxt.cta)}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
     <div class="grid-3">
       <div class="card metric"><strong>${done}<span style="font-size:15px;color:var(--muted)">/${TOTAL_LESSONS}</span></strong><span>Lessons done</span></div>
       <div class="card metric"><strong>${builds}</strong><span>Pizzas designed</span></div>
       <div class="card metric"><strong>${bakes}</strong><span>Bakes logged</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="card wins-card">
+      <div>
+        <h3 style="margin:0 0 4px">This week's pizza wins</h3>
+        <p>${wins === 0 ? "A quiet week so far \u2014 no pressure. Even one bake is a win in Marco's book." : wins === 1 ? "1 thing logged this week. Marco is quietly proud." : `${wins} things logged this week \u2014 Marco is telling the whole famiglia.`}</p>
+      </div>
+      ${kit ? `<button class="kitchen-chip" data-change-kitchen title="Change kitchen">${kit.icon} ${esc(kit.label)}</button>` : `<button class="kitchen-chip" data-change-kitchen>Set up my kitchen</button>`}
     </div>
   </section>
 
@@ -201,6 +285,10 @@ function viewHome() {
       </div>
       <img src="./images/mascot-pasta.jpg" alt="Marco twirling a forkful of spaghetti" loading="lazy" />
     </div>
+  </section>
+
+  <section class="section" style="text-align:center;padding-bottom:18px">
+    <button class="btn btn-ghost btn-sm" data-replay-welcome>Replay Marco's welcome</button>
   </section>`;
 }
 
@@ -237,6 +325,18 @@ function wireHome() {
   });
   const rec = $("[data-recipe]");
   if (rec) rec.addEventListener("click", () => { location.hash = "#recipes"; setTimeout(() => openCook(rec.dataset.recipe), 60); });
+  const nxtCard = $("[data-next-act]");
+  if (nxtCard) nxtCard.addEventListener("click", () => {
+    const act = nxtCard.dataset.nextAct;
+    if (act === "first-lesson") { location.hash = "#learn"; setTimeout(() => openStory(PACKS[0].id, PACKS[0].lessons[0].id), 60); }
+    else if (act === "first-bake") { location.hash = "#recipes"; setTimeout(() => openCook(RECIPES[0].id), 60); }
+    else if (act === "continue") { const nx = findNextLesson(); if (nx) { location.hash = "#learn"; setTimeout(() => openStory(nx.pack.id, nx.lesson.id), 60); } }
+    else if (act === "calc") { location.hash = "#calc"; }
+  });
+  const chg = $("[data-change-kitchen]");
+  if (chg) chg.addEventListener("click", (e) => { e.stopPropagation(); openOnboarding(2); });
+  const replay = $("[data-replay-welcome]");
+  if (replay) replay.addEventListener("click", () => openOnboarding(1));
 }
 
 /* ================================================================
@@ -333,10 +433,12 @@ function renderStory() {
             <h2>Bravissimo!</h2>
             <p class="story-body">"${esc(lesson.title)}" is in your head now. ${nextInPack() ? "Ready for the next chapter?" : "That's the whole pack — magnifico!"}</p>
           </div>
-          <div style="display:flex;gap:10px;width:100%;max-width:340px">
+          <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px">
             ${story.returnToCook && cook ? `<button class="btn btn-primary btn-block" data-back-cook>Back to the recipe</button>` : `
             ${nextInPack() ? `<button class="btn btn-primary btn-block" data-next-lesson>Next lesson</button>` : ""}
-            <button class="btn btn-secondary btn-block" data-back-menu>Chapters</button>`}
+            ${applyNudgeHtml()}
+            <button class="btn btn-secondary btn-block" data-back-menu>Chapters</button>
+            <button class="btn btn-ghost btn-block btn-sm" data-remember>Save a takeaway to my Journal</button>`}
           </div>
         </div>` : `
         ${slide.image ? `<img src="${slide.image}" alt="" />` : ""}
@@ -372,6 +474,35 @@ function renderStory() {
     render();
     openChapterMenu(pid);
   });
+  const applyBtn = $("[data-apply-nudge]", overlayRoot);
+  if (applyBtn) applyBtn.addEventListener("click", () => {
+    const target = applyBtn.dataset.applyNudge;
+    story = null;
+    closeOverlays();
+    if (target === "build") { location.hash = "#build"; }
+    else { location.hash = "#recipes"; setTimeout(() => openCook(target), 80); }
+  });
+  const remBtn = $("[data-remember]", overlayRoot);
+  if (remBtn) remBtn.addEventListener("click", () => {
+    state.journal.unshift({ id: Date.now(), type: "note", title: `Lesson: ${lesson.title}`, detail: lesson.summary || "Completed and understood.", ts: Date.now() });
+    save();
+    toast("Saved to your Journal \uD83D\uDCD3");
+    remBtn.disabled = true;
+    remBtn.textContent = "Saved \u2713";
+  });
+}
+
+function applyNudgeHtml() {
+  if (!story) return "";
+  // Map pack → most relevant immediate application
+  const map = {
+    dough: { target: "build", label: "Try dough choices in the Builder" },
+    sauce: { target: "personal-margherita", label: "Cook it: Personal Margherita" },
+    oven: { target: "personal-margherita", label: "Bake one tonight" }
+  };
+  const key = Object.keys(map).find(k => story.packId.includes(k));
+  const nudge = key ? map[key] : { target: "build", label: "Try this in the Builder" };
+  return `<button class="btn btn-secondary btn-block" data-apply-nudge="${nudge.target}">${esc(nudge.label)}</button>`;
 }
 
 function advanceStory() {
@@ -382,6 +513,10 @@ function advanceStory() {
     if (!state.completedLessons[key]) {
       state.completedLessons[key] = true;
       save();
+      confetti();
+      const n = lessonsDoneCount();
+      if (n === 1) celebrateOnce("first-lesson", "First lesson done \u2014 Marco is beaming!");
+      else if (n === TOTAL_LESSONS) celebrateOnce("all-lessons", "Pizza School: COMPLETE. Dottore della pizza!");
     }
   }
   renderStory();
@@ -468,7 +603,17 @@ function balanceBarsHtml() {
     <div class="bal-row"><span>Bright</span><div class="bal-track"><i style="width:${pct(s.bright)}%;background:var(--basil)"></i></div></div>
     <div class="bal-row"><span>Rich</span><div class="bal-track"><i style="width:${pct(s.rich)}%;background:var(--butter-dark)"></i></div></div>
     <div class="bal-row"><span>Crunch</span><div class="bal-track"><i style="width:${pct(s.crunch)}%;background:var(--crust)"></i></div></div>
-    <div class="bal-row ${moistWarn ? "warn" : ""}"><span>Moisture</span><div class="bal-track"><i style="width:${pct(s.moisture)}%;background:${moistWarn ? "var(--danger)" : "var(--terracotta-light)"}"></i></div></div>`;
+    <div class="bal-row ${moistWarn ? "warn" : ""}"><span>Moisture</span><div class="bal-track"><i style="width:${pct(s.moisture)}%;background:${moistWarn ? "var(--danger)" : "var(--terracotta-light)"}"></i></div></div>
+    <p class="bal-caption">${esc(balanceCaption(s, moistWarn))}</p>`;
+}
+
+function balanceCaption(s, moistWarn) {
+  if (moistWarn) return "A bit swampy in the middle \u2014 drain something wet and this gets great.";
+  if (s.bright < 3 && s.rich >= 6) return "Rich and cosy \u2014 a pinch more brightness (basil? hot honey?) would make this pop!";
+  if (s.bright >= 6 && s.rich < 3) return "Zingy and fresh \u2014 a creamy cheese would round it out beautifully.";
+  if (s.crunch >= 8) return "Serious crunch credentials. This one will sing on the way in.";
+  if (s.bright >= 4 && s.rich >= 4 && s.crunch >= 4) return "Beautifully balanced \u2014 Marco would serve this to his nonna.";
+  return "A gentle, honest pizza. Add or swap anything \u2014 there are no wrong answers here.";
 }
 
 function pizzaSvg() {
@@ -726,12 +871,15 @@ function renderCook() {
         <h2>What are you baking in?</h2>
         <p class="cook-intro">Preheat, temperature and timing all change with your oven — pick yours and every step adapts.</p>
         <div class="mode-pick">
-          ${OVEN_MODES.map(m => `
-          <button class="mode-card" data-mode="${m.id}">
+          ${OVEN_MODES.map(m => {
+            const isDefault = (state.kitchen === "combi" && m.id === "combi") || ((state.kitchen === "oven" || state.kitchen === "pizzaoven") && m.id === "oven");
+            return `
+          <button class="mode-card ${isDefault ? "suggested" : ""}" data-mode="${m.id}">
             <span class="mode-icon">${m.icon}</span>
-            <span class="mode-body"><strong>${esc(m.title)}</strong><small>${esc(m.desc)}</small></span>
+            <span class="mode-body"><strong>${esc(m.title)}</strong>${isDefault ? `<span class="chip chip-butter" style="margin:2px 0 4px;align-self:flex-start">Your kitchen</span>` : ""}<small>${esc(m.desc)}</small></span>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-          </button>`).join("")}
+          </button>`;
+          }).join("")}
         </div>
         <p class="cook-note" style="margin-top:14px"><strong>Marco says:</strong> No steel? No shame. The combi path is tuned for a Panasonic CS89-class convection microwave — 230 °C max, enamel shelf, grill finish.</p>
       </div>`;
@@ -741,8 +889,21 @@ function renderCook() {
         <img src="./images/mascot-cheer.jpg" alt="Marco celebrating" />
         <h2>Buon appetito!</h2>
         <p>You just made a ${esc(r.title)} from scratch. Log it while the memory (and the crust) is still warm — future you will thank present you.</p>
-        <button class="btn btn-primary btn-block" data-log>Log this bake in my Journal</button>
-        <button class="btn btn-secondary btn-block" data-close-cook style="margin-top:10px">Done</button>
+        <div class="log-form">
+          <div class="log-label">How did it turn out?</div>
+          <div class="rating-row" role="radiogroup" aria-label="Rate this bake">
+            <button class="rating-chip" data-rating="1">\uD83D\uDE48 Needs work</button>
+            <button class="rating-chip" data-rating="2">\uD83D\uDC4D Solid</button>
+            <button class="rating-chip" data-rating="3">\uD83D\uDE18 Chef's kiss</button>
+          </div>
+          <label class="photo-btn">
+            <input type="file" accept="image/*" id="bakePhoto" hidden />
+            <span id="photoLabel">\uD83D\uDCF8 Add a photo of your pizza</span>
+          </label>
+          <textarea class="note-input" id="bakeNote" rows="2" placeholder="Anything to remember? e.g. rim was perfect, centre slightly wet"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" data-log>Log this bake</button>
+        <button class="btn btn-secondary btn-block" data-close-cook style="margin-top:10px">Done — skip the log</button>
       </div>`;
   } else {
     const step = resolveStep(r.steps[i], cook.mode);
@@ -806,17 +967,39 @@ function renderCook() {
     if (st && st.learn) { stopTimer(); openStory(st.learn.pack, st.learn.lesson, st.learn.slide || 0, true); }
   });
   const modeLog = cook.mode === "combi" ? " (combi microwave)" : "";
+  // Finish screen: rating chips, photo picker, note
+  let pickedRating = 0, pickedPhoto = null;
+  $$(".rating-chip", overlayRoot).forEach(chip => chip.addEventListener("click", () => {
+    pickedRating = parseInt(chip.dataset.rating, 10);
+    $$(".rating-chip", overlayRoot).forEach(c => c.classList.toggle("on", c === chip));
+  }));
+  const photoInput = $("#bakePhoto", overlayRoot);
+  if (photoInput) photoInput.addEventListener("change", async () => {
+    const f = photoInput.files && photoInput.files[0];
+    if (!f) return;
+    try {
+      pickedPhoto = await downscalePhoto(f);
+      $("#photoLabel", overlayRoot).textContent = "\uD83D\uDCF8 Photo added \u2713 (tap to change)";
+    } catch { toast("Couldn't read that photo — try another?"); }
+  });
   const logBtn = $("[data-log]", overlayRoot);
   if (logBtn) logBtn.addEventListener("click", () => {
-    state.journal.unshift({
+    const note = ($("#bakeNote", overlayRoot) || {}).value || "";
+    const entry = {
       id: Date.now(), type: "bake",
       title: r.title,
-      detail: `Cooked along with the ${r.title} recipe${modeLog}.`,
+      detail: note.trim() || `Cooked along with the ${r.title} recipe${modeLog}.`,
       ts: Date.now()
-    });
-    save();
+    };
+    if (pickedRating) entry.rating = pickedRating;
+    if (pickedPhoto) entry.photo = pickedPhoto;
+    pushJournal(entry);
     cook = null; stopTimer(); closeOverlays();
-    toast("Bake logged. Marco is proud of you.");
+    const n = bakesLogged();
+    if (n === 1) celebrateOnce("first-bake", "Your first bake is in the book. Marco is SO proud.");
+    else if (n === 5) celebrateOnce("five-bakes", "5 bakes logged — you're officially a regular at the club.");
+    else if (n === 10) celebrateOnce("ten-bakes", "10 bakes! Marco is naming a table after you.");
+    else { confetti(); toast("Bake logged. Marco is proud of you."); }
     if (currentRoute() === "journal") render();
   });
   wireTimer();
@@ -993,13 +1176,66 @@ function wireBake() {
    JOURNAL
 ================================================================ */
 const TYPE_META = {
-  build: { label: "Pizza design", icon: "🍕" },
-  bake: { label: "Bake", icon: "🔥" },
-  note: { label: "Note", icon: "✏️" }
+  build: { label: "Pizza design", icon: "\uD83C\uDF55" },
+  bake: { label: "Bake", icon: "\uD83D\uDD25" },
+  note: { label: "Note", icon: "\u270F\uFE0F" },
+  dough: { label: "Dough mix", icon: "\uD83E\uDD63" }
 };
+const RATING_META = { 1: "\uD83D\uDE48 Needs work", 2: "\uD83D\uDC4D Solid", 3: "\uD83D\uDE18 Chef's kiss" };
+
+/* Quota-safe journal save: if localStorage is full (photos!), drop oldest photos first. */
+function pushJournal(entry) {
+  state.journal.unshift(entry);
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage full — strip photos from oldest entries until it fits
+    const withPhotos = [...state.journal].reverse().filter(e => e.photo && e !== entry);
+    for (const old of withPhotos) {
+      delete old.photo;
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); toast("Storage was full — oldest photo trimmed to make room."); return; } catch { /* keep trimming */ }
+    }
+    delete entry.photo;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); toast("Storage full — entry saved without the photo."); } catch { toast("Couldn't save — storage is full."); }
+  }
+}
+
+/* Downscale an image file to ≤640px JPEG data URL for journal storage. */
+function downscalePhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const max = 640;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const cv = document.createElement("canvas");
+      cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL("image/jpeg", 0.78));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+    img.src = url;
+  });
+}
+
+function journalInsight(entries) {
+  const bakes = entries.filter(e => e.type === "bake");
+  if (bakes.length < 2) return null;
+  const rated = bakes.filter(b => b.rating);
+  if (rated.length >= 2 && rated[0].rating > rated[1].rating) return "Your latest bake beat the one before it. That's the curve Marco likes to see.";
+  const counts = {};
+  bakes.forEach(b => { counts[b.title] = (counts[b.title] || 0) + 1; });
+  const fav = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  if (fav && fav[1] >= 2) return `${fav[0]} is your go-to (${fav[1]} bakes). Maybe next time, surprise Marco with something new?`;
+  return `${bakes.length} bakes logged. Every one of them taught your hands something.`;
+}
 
 function viewJournal() {
   const entries = state.journal;
+  const photos = entries.filter(e => e.photo);
+  const insight = journalInsight(entries);
   return `
   <section class="section">
     <div class="section-head">
@@ -1007,10 +1243,27 @@ function viewJournal() {
       ${entries.length ? `<button class="btn btn-ghost" id="exportJournal">Export</button>` : ""}
     </div>
 
+    ${photos.length ? `
+    <div class="bake-grid">
+      ${photos.slice(0, 9).map(e => `<img src="${e.photo}" alt="${esc(e.title)}" title="${esc(e.title)}" loading="lazy" />`).join("")}
+    </div>` : ""}
+
+    ${insight ? `
+    <div class="card mascot-card" style="margin-bottom:14px">
+      <img src="./images/mascot-hero.jpg" alt="Marco" />
+      <div><h3>Marco noticed…</h3><p>${esc(insight)}</p></div>
+    </div>` : ""}
+
     <div class="card" style="padding:16px 18px">
       <h3 style="margin-bottom:8px">Quick note</h3>
       <textarea id="noteText" class="note-input" rows="2" placeholder="e.g. 65% dough, 48h ferment — best crust yet. Rotate earlier next time."></textarea>
-      <button class="btn btn-primary btn-small" id="addNote" style="margin-top:10px">Add note</button>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+        <button class="btn btn-primary btn-small" id="addNote">Add note</button>
+        <label class="photo-btn photo-btn-inline">
+          <input type="file" accept="image/*" id="notePhoto" hidden />
+          <span id="notePhotoLabel">\uD83D\uDCF8 Photo</span>
+        </label>
+      </div>
     </div>
 
     ${entries.length === 0 ? `
@@ -1024,14 +1277,15 @@ function viewJournal() {
     <div class="journal-list" style="margin-top:14px">
       ${entries.map(e => `
       <div class="card journal-entry">
-        <span class="journal-icon">${TYPE_META[e.type]?.icon || "📄"}</span>
+        <span class="journal-icon">${TYPE_META[e.type]?.icon || "\uD83D\uDCC4"}</span>
         <div class="journal-body">
           <div class="journal-head">
             <strong>${esc(e.title)}</strong>
             <button class="journal-del" data-del="${e.id}" aria-label="Delete entry"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg></button>
           </div>
+          ${e.photo ? `<img class="journal-photo" src="${e.photo}" alt="Photo for ${esc(e.title)}" loading="lazy" />` : ""}
           <p class="journal-detail">${esc(e.detail).replace(/\n/g, "<br>")}</p>
-          <small>${TYPE_META[e.type]?.label || "Entry"} · ${fmtWhen(e.ts)}</small>
+          <small>${TYPE_META[e.type]?.label || "Entry"}${e.rating ? ` · ${RATING_META[e.rating]}` : ""} · ${fmtWhen(e.ts)}</small>
         </div>
       </div>`).join("")}
     </div>`}
@@ -1039,12 +1293,23 @@ function viewJournal() {
 }
 
 function wireJournal() {
+  let notePhoto = null;
+  const notePhotoInput = $("#notePhoto");
+  if (notePhotoInput) notePhotoInput.addEventListener("change", async () => {
+    const f = notePhotoInput.files && notePhotoInput.files[0];
+    if (!f) return;
+    try {
+      notePhoto = await downscalePhoto(f);
+      $("#notePhotoLabel").textContent = "\uD83D\uDCF8 \u2713";
+    } catch { toast("Couldn't read that photo — try another?"); }
+  });
   const add = $("#addNote");
   if (add) add.addEventListener("click", () => {
     const txt = $("#noteText").value.trim();
-    if (!txt) { toast("Write something first — even 'crust too pale' counts."); return; }
-    state.journal.unshift({ id: Date.now(), type: "note", title: txt.length > 42 ? txt.slice(0, 42) + "…" : txt, detail: txt, ts: Date.now() });
-    save();
+    if (!txt && !notePhoto) { toast("Write something first — even 'crust too pale' counts."); return; }
+    const entry = { id: Date.now(), type: "note", title: txt ? (txt.length > 42 ? txt.slice(0, 42) + "\u2026" : txt) : "Photo note", detail: txt || "", ts: Date.now() };
+    if (notePhoto) entry.photo = notePhoto;
+    pushJournal(entry);
     render();
     toast("Note saved.");
   });
@@ -1094,6 +1359,14 @@ function viewDoughLab() {
   </section>
 
   <section class="section">
+    <div class="card next-card" data-go-calc role="button" tabindex="0" style="margin-bottom:14px">
+      <div style="flex:1">
+        <span class="eyebrow" style="color:var(--terracotta)">New tool</span>
+        <h3 style="margin:4px 0 6px">Dough Calculator</h3>
+        <p>Any number of pizzas, any size, any style — Marco does the maths and hands you the gram-perfect mix.</p>
+        <span class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block">Open the calculator</span>
+      </div>
+    </div>
     ${DOUGH_RECIPES.map(d => `
     <div class="card dough-card" data-dough="${d.id}" role="button" tabindex="0">
       <img class="card-img-top" src="${d.image}" alt="${esc(d.name)}" loading="lazy" />
@@ -1117,6 +1390,11 @@ function viewDoughLab() {
 
 function wireDoughLab() {
   $$("[data-dough]").forEach(el => el.addEventListener("click", () => openDough(el.dataset.dough)));
+  const calcCard = $("[data-go-calc]");
+  if (calcCard) {
+    calcCard.addEventListener("click", () => { location.hash = "#calc"; });
+    calcCard.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); location.hash = "#calc"; } });
+  }
 }
 
 function openDough(id) {
@@ -1190,6 +1468,147 @@ function openDough(id) {
 }
 
 /* ================================================================
+   DOUGH CALCULATOR — simple by default, power on request
+================================================================ */
+const CALC_STYLES = {
+  neapolitan: { label: "Neapolitan-ish", hydration: 62, salt: 2.8, yeast: 0.2, note: "Soft, puffy rim. The classic starting point." },
+  newpolitan: { label: "Newpolitan", hydration: 72, salt: 2.6, yeast: 0.3, note: "Casa Vostra territory — crisp outside, fluffy sweet middle." },
+  newyork: { label: "New York", hydration: 63, salt: 2.5, yeast: 0.4, note: "Chewy, foldable, forgiving. Add 2% oil + 2% sugar below." },
+  panpizza: { label: "Pan / focaccia", hydration: 80, salt: 2.2, yeast: 0.5, note: "No-knead, fluffy, fried-crisp bottom. Great in a combi." }
+};
+const CALC_SIZES = { s: { label: "Small (22 cm)", grams: 170 }, m: { label: "Medium (26 cm)", grams: 220 }, l: { label: "Large (30 cm)", grams: 280 } };
+let calc = { pizzas: 2, size: "m", style: "newpolitan", advanced: false, hydration: null, salt: null, yeast: null };
+
+function calcNumbers() {
+  const st = CALC_STYLES[calc.style];
+  const hydration = calc.advanced && calc.hydration != null ? calc.hydration : st.hydration;
+  const salt = calc.advanced && calc.salt != null ? calc.salt : st.salt;
+  const yeast = calc.advanced && calc.yeast != null ? calc.yeast : st.yeast;
+  const totalDough = calc.pizzas * CALC_SIZES[calc.size].grams;
+  // flour + flour*(h+s+y)/100 = total → flour = total / (1 + (h+s+y)/100)
+  const flour = totalDough / (1 + (hydration + salt + yeast) / 100);
+  const r = x => Math.round(x);
+  return {
+    hydration, salt, yeast, totalDough: r(totalDough),
+    flour: r(flour),
+    water: r(flour * hydration / 100),
+    saltG: Math.round(flour * salt / 100 * 10) / 10,
+    yeastG: Math.round(flour * yeast / 100 * 10) / 10
+  };
+}
+
+function calcCaption(h) {
+  if (h < 60) return "Firm and easy to handle — great for rolling pins and beginners.";
+  if (h < 66) return "The friendly zone. Easy to stretch, hard to mess up.";
+  if (h < 72) return "Softer and bubblier — flour your hands and be gentle.";
+  if (h < 78) return "Sticky but worth it: big open crumb, crisp-fluffy contrast. Marco's happy place.";
+  return "Basically wet cement — no-knead folds only, bake it in a pan, thank Marco later.";
+}
+
+function viewCalc() {
+  const n = calcNumbers();
+  const st = CALC_STYLES[calc.style];
+  return `
+  <section class="section">
+    <div class="section-head">
+      <div><h2>Dough Calculator</h2><p>Tell Marco what you're making — he'll do the maths.</p></div>
+      <button class="btn btn-ghost" data-back-lab>Dough Lab</button>
+    </div>
+
+    <div class="card" style="padding:18px">
+      <h3 class="builder-h" style="margin-top:0">How many pizzas?</h3>
+      <div class="stepper">
+        <button class="stepper-btn" data-calc-minus aria-label="Fewer pizzas">−</button>
+        <span class="stepper-val">${calc.pizzas}</span>
+        <button class="stepper-btn" data-calc-plus aria-label="More pizzas">+</button>
+      </div>
+
+      <h3 class="builder-h">What size?</h3>
+      <div class="seg-row" data-calc-size>
+        ${Object.entries(CALC_SIZES).map(([id, s]) => `<button class="seg ${calc.size === id ? "on" : ""}" data-id="${id}"><strong>${esc(s.label.split(" ")[0])}</strong><small>${esc(s.label.match(/\((.+)\)/)[1])} · ${s.grams} g ball</small></button>`).join("")}
+      </div>
+
+      <h3 class="builder-h">What style?</h3>
+      <div class="seg-row wrap" data-calc-style>
+        ${Object.entries(CALC_STYLES).map(([id, s]) => `<button class="seg ${calc.style === id ? "on" : ""}" data-id="${id}"><strong>${esc(s.label)}</strong><small>${s.hydration}% water</small></button>`).join("")}
+      </div>
+      <p class="hint" style="margin-top:6px">${esc(st.note)}</p>
+
+      <button class="btn btn-ghost btn-sm" data-calc-adv style="margin-top:12px">${calc.advanced ? "Hide the dials \u25B4" : "I want more control \u25BE"}</button>
+      ${calc.advanced ? `
+      <div class="calc-adv">
+        <label class="calc-slider"><span>Hydration <strong>${n.hydration}%</strong></span>
+          <input type="range" min="55" max="90" step="1" value="${n.hydration}" data-adv="hydration" /></label>
+        <label class="calc-slider"><span>Salt <strong>${n.salt}%</strong></span>
+          <input type="range" min="1.5" max="3.5" step="0.1" value="${n.salt}" data-adv="salt" /></label>
+        <label class="calc-slider"><span>Yeast (instant) <strong>${n.yeast}%</strong></span>
+          <input type="range" min="0.05" max="1" step="0.05" value="${n.yeast}" data-adv="yeast" /></label>
+      </div>` : ""}
+    </div>
+
+    <div class="card calc-result" style="margin-top:14px;padding:18px">
+      <h3 style="margin:0 0 4px">Your dough — ${calc.pizzas} × ${CALC_SIZES[calc.size].grams} g balls</h3>
+      <p class="bal-caption" style="margin:0 0 12px">${esc(calcCaption(n.hydration))}</p>
+      <table class="dough-table">
+        <thead><tr><th>Ingredient</th><th>Amount</th><th>Baker's %</th></tr></thead>
+        <tbody>
+          <tr><td>Bread flour (strong, 12–14% protein)</td><td><strong>${n.flour} g</strong></td><td>100%</td></tr>
+          <tr><td>Water (cool, ~18 °C)</td><td><strong>${n.water} g</strong></td><td>${n.hydration}%</td></tr>
+          <tr><td>Fine sea salt</td><td><strong>${n.saltG} g</strong></td><td>${n.salt}%</td></tr>
+          <tr><td>Instant dry yeast</td><td><strong>${n.yeastG} g</strong></td><td>${n.yeast}%</td></tr>
+          <tr><td><em>Total dough</em></td><td><em>${n.totalDough} g</em></td><td></td></tr>
+        </tbody>
+      </table>
+      <p class="hint" style="margin-top:10px">Mix → rest 20 min → knead or fold until smooth → ferment. For the full method, borrow the timeline from the closest Dough Lab recipe.</p>
+      <button class="btn btn-primary btn-block" data-calc-save style="margin-top:12px">Save this mix to my Journal</button>
+    </div>
+  </section>`;
+}
+
+function wireCalc() {
+  const rerender = () => { app.innerHTML = viewCalc(); wireCalc(); };
+  $("[data-back-lab]").addEventListener("click", () => { location.hash = "#doughlab"; });
+  $("[data-calc-minus]").addEventListener("click", () => { if (calc.pizzas > 1) { calc.pizzas--; rerender(); } });
+  $("[data-calc-plus]").addEventListener("click", () => { if (calc.pizzas < 12) { calc.pizzas++; rerender(); } });
+  $$("[data-calc-size] .seg").forEach(b => b.addEventListener("click", () => { calc.size = b.dataset.id; rerender(); }));
+  $$("[data-calc-style] .seg").forEach(b => b.addEventListener("click", () => {
+    calc.style = b.dataset.id;
+    calc.hydration = calc.salt = calc.yeast = null; // reset dials to style defaults
+    rerender();
+  }));
+  $("[data-calc-adv]").addEventListener("click", () => { calc.advanced = !calc.advanced; rerender(); });
+  $$("[data-adv]").forEach(sl => sl.addEventListener("input", () => {
+    calc[sl.dataset.adv] = parseFloat(sl.value);
+    // Live-update numbers without full rerender to keep slider focus
+    const n = calcNumbers();
+    const label = sl.closest(".calc-slider").querySelector("strong");
+    label.textContent = sl.dataset.adv === "hydration" ? `${n.hydration}%` : `${calc[sl.dataset.adv]}%`;
+    const rows = $$(".calc-result tbody tr");
+    if (rows.length === 5) {
+      rows[0].children[1].innerHTML = `<strong>${n.flour} g</strong>`;
+      rows[1].children[1].innerHTML = `<strong>${n.water} g</strong>`;
+      rows[1].children[2].textContent = `${n.hydration}%`;
+      rows[2].children[1].innerHTML = `<strong>${n.saltG} g</strong>`;
+      rows[2].children[2].textContent = `${n.salt}%`;
+      rows[3].children[1].innerHTML = `<strong>${n.yeastG} g</strong>`;
+      rows[3].children[2].textContent = `${n.yeast}%`;
+    }
+    $(".calc-result .bal-caption").textContent = calcCaption(n.hydration);
+  }));
+  $("[data-calc-save]").addEventListener("click", () => {
+    const n = calcNumbers();
+    pushJournal({
+      id: Date.now(), type: "dough",
+      title: `${CALC_STYLES[calc.style].label} dough × ${calc.pizzas}`,
+      detail: `${n.flour} g flour · ${n.water} g water (${n.hydration}%) · ${n.saltG} g salt · ${n.yeastG} g yeast → ${calc.pizzas} × ${CALC_SIZES[calc.size].grams} g balls.`,
+      ts: Date.now()
+    });
+    confetti();
+    toast("Mix saved — check your Journal when you bake it.");
+  });
+}
+
+/* ================================================================
    PASTA — coming soon teaser
 ================================================================ */
 function viewPasta() {
@@ -1211,6 +1630,79 @@ function viewPasta() {
 function wirePasta() {
   const btn = $("#notifyPasta");
   if (btn) btn.addEventListener("click", () => toast("Marco will shout very loudly from the kitchen when the pasta is ready."));
+}
+
+/* ================================================================
+   ONBOARDING — first-run welcome (3 screens)
+================================================================ */
+let onboard = null; // { screen: 1|2|3 }
+
+function openOnboarding(screen = 1) {
+  onboard = { screen };
+  renderOnboarding();
+}
+
+function renderOnboarding() {
+  if (!onboard) return;
+  const s = onboard.screen;
+  let body = "";
+  if (s === 1) {
+    body = `
+      <img class="onboard-mascot" src="./images/mascot-hero.jpg" alt="Marco tossing pizza dough" />
+      <h2>Ciao! I'm Marco.</h2>
+      <p>Welcome to my little pizza club. No exams, no gatekeeping — just the science of great pizza, told like a friend would tell it, and a kitchen that smells amazing by the weekend.</p>
+      <button class="btn btn-primary btn-block" data-ob-next>Piacere, Marco!</button>
+      <button class="btn btn-ghost btn-block btn-sm" data-ob-skip>Skip the tour</button>`;
+  } else if (s === 2) {
+    body = `
+      <h2>What's your kitchen like?</h2>
+      <p>I'll tune preheat times, temperatures and tricks to what you've actually got. You can change this anytime from the home screen.</p>
+      <div class="onboard-kitchens">
+        ${Object.entries(KITCHENS).map(([id, k]) => `
+        <button class="mode-card ${state.kitchen === id ? "suggested" : ""}" data-ob-kitchen="${id}">
+          <span class="mode-icon">${k.icon}</span>
+          <span class="mode-body"><strong>${esc(k.label)}</strong><small>${esc(k.hint)}</small></span>
+        </button>`).join("")}
+      </div>`;
+  } else {
+    const kit = state.kitchen ? KITCHENS[state.kitchen] : null;
+    body = `
+      <img class="onboard-mascot" src="./images/mascot-cheer.jpg" alt="Marco celebrating" />
+      <h2>Perfetto${kit ? ` — ${esc(kit.label.toLowerCase())} it is` : ""}!</h2>
+      <p>One last thing: where shall we start? Both roads lead to great pizza.</p>
+      <button class="btn btn-primary btn-block" data-ob-lesson>\uD83D\uDCD6 Teach me something first <small style="display:block;font-weight:400">5-minute lesson on flour</small></button>
+      <button class="btn btn-secondary btn-block" data-ob-bake>\uD83C\uDF55 Straight to the kitchen <small style="display:block;font-weight:400">Cook-along Personal Margherita</small></button>
+      <button class="btn btn-ghost btn-block btn-sm" data-ob-skip>I'll just look around</button>`;
+  }
+
+  overlayRoot.innerHTML = `
+  <div class="onboard" role="dialog" aria-modal="true" aria-label="Welcome to Marco's Pizza Club">
+    <div class="onboard-card">
+      <div class="onboard-dots">${[1, 2, 3].map(n => `<i class="${n === s ? "on" : ""}"></i>`).join("")}</div>
+      ${body}
+    </div>
+  </div>`;
+
+  const finish = (thenDo) => {
+    state.onboarded = true;
+    save();
+    onboard = null;
+    closeOverlays();
+    if (thenDo) thenDo();
+  };
+  const nextB = $("[data-ob-next]", overlayRoot);
+  if (nextB) nextB.addEventListener("click", () => { onboard.screen = 2; renderOnboarding(); });
+  $$("[data-ob-kitchen]", overlayRoot).forEach(b => b.addEventListener("click", () => {
+    state.kitchen = b.dataset.obKitchen;
+    save();
+    onboard.screen = 3;
+    renderOnboarding();
+  }));
+  const lessonB = $("[data-ob-lesson]", overlayRoot);
+  if (lessonB) lessonB.addEventListener("click", () => finish(() => { location.hash = "#learn"; setTimeout(() => openStory(PACKS[0].id, PACKS[0].lessons[0].id), 80); }));
+  const bakeB = $("[data-ob-bake]", overlayRoot);
+  if (bakeB) bakeB.addEventListener("click", () => finish(() => { location.hash = "#recipes"; setTimeout(() => openCook("personal-margherita"), 80); }));
+  $$("[data-ob-skip]", overlayRoot).forEach(b => b.addEventListener("click", () => finish(() => { render(); })));
 }
 
 /* ================================================================
@@ -1241,6 +1733,7 @@ overlayObserver.observe(overlayRoot, { childList: true });
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && overlayRoot.innerHTML) {
+    if (onboard) { state.onboarded = true; save(); onboard = null; }
     story = null; cook = null;
     closeOverlays();
   } else if (story && e.key === "ArrowRight") advanceStory();
@@ -1267,6 +1760,7 @@ if ("serviceWorker" in navigator) {
 // leaves a silent blank screen.
 try {
   render();
+  if (!state.onboarded) setTimeout(() => openOnboarding(1), 900);
 } catch (err) {
   console.error("Boot failed:", err);
   app.innerHTML = `
