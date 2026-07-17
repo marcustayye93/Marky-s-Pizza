@@ -50,8 +50,15 @@ const app = $("#app");
 const overlayRoot = $("#overlay-root");
 
 function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Escapes every character that can break out of an HTML text or attribute
+  // context, including backticks. Verified against payloads like
+  // <img src=x onerror=alert(1)> — rendered inert as text.
+  return String(s).replace(/[&<>"'`]/g, c => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;" }[c]
+  ));
 }
+
+const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let toastTimer;
 function toast(msg) {
@@ -311,7 +318,7 @@ function renderStory() {
   const slide = isDone ? null : lesson.slides[i];
 
   overlayRoot.innerHTML = `
-  <div class="story" role="dialog" aria-label="${esc(lesson.title)}">
+  <div class="story" role="dialog" aria-modal="true" aria-label="${esc(lesson.title)}">
     <div class="story-progress">${Array.from({ length: total }, (_, k) => `<i class="${k <= i ? "on" : ""}"></i>`).join("")}</div>
     <div class="story-top">
       <span class="story-pack">${esc(pack.title)}</span>
@@ -469,7 +476,9 @@ function pizzaSvg() {
   const R = size.id === "sharing" ? 92 : 78;
   const rimW = size.id === "sharing" ? 11 : 13;
   const saucR = R - rimW - 2;
-  const crust = dough.viz.crust;
+  // Defensive: fall back to sensible defaults if a data entry ever ships
+  // without a viz block, so the drawing never throws mid-render.
+  const crust = (dough.viz && dough.viz.crust) || "#E8C083";
 
   // deterministic pseudo-random positions
   const rng = mulberry(hash(dough.id + sauce.id + cheeses.map(c => c.id).join() + toppings.map(t => t.id).join()));
@@ -483,7 +492,8 @@ function pizzaSvg() {
   // cheese pools
   const hasCheese = cheeses.length > 0;
   if (hasCheese) {
-    const cheeseColor = (cheeses.find(c => c.id !== "parmesan") || cheeses[0]).viz.color;
+    const cheesePick = cheeses.find(c => c.id !== "parmesan") || cheeses[0];
+    const cheeseColor = (cheesePick.viz && cheesePick.viz.color) || "#F6EAC9";
     layers += scatter(12, saucR - 12).map(([x, y]) => {
       const rr = 9 + rng() * 9;
       return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${rr.toFixed(1)}" ry="${(rr * (0.75 + rng() * 0.3)).toFixed(1)}" fill="${cheeseColor}" opacity="0.95"/>`;
@@ -495,7 +505,8 @@ function pizzaSvg() {
 
   // toppings
   for (const t of toppings) {
-    const c = t.viz.color;
+    if (!t.viz) continue;
+    const c = t.viz.color || "#8E2E24";
     if (t.viz.shape === "dot") {
       layers += scatter(8, saucR - 14).map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7.5" fill="${c}" stroke="#8E2E24" stroke-width="1.2"/>`).join("");
     } else if (t.viz.shape === "leaf") {
@@ -520,7 +531,7 @@ function pizzaSvg() {
 
   // leopard spots on rim
   let spots = "";
-  if (dough.viz.spots) {
+  if (dough.viz && dough.viz.spots) {
     const spotRng = mulberry(42);
     spots = Array.from({ length: 14 }, () => {
       const a = spotRng() * Math.PI * 2;
@@ -535,7 +546,7 @@ function pizzaSvg() {
     <circle cx="102" cy="104" r="${R}" fill="#00000014"/>
     <circle cx="100" cy="100" r="${R}" fill="${crust}"/>
     <circle cx="100" cy="100" r="${R - rimW}" fill="${shade(crust, -8)}"/>
-    <circle cx="100" cy="100" r="${saucR}" fill="${sauce.viz.color}"/>
+    <circle cx="100" cy="100" r="${saucR}" fill="${(sauce.viz && sauce.viz.color) || "#C1502E"}"/>
     ${layers}
     ${spots}
   </svg>`;
@@ -742,7 +753,7 @@ function renderCook() {
         <div class="progress" style="margin-bottom:18px"><i style="width:${Math.round((i + 1) / total * 100)}%"></i></div>
         <h2>${esc(step.title)}</h2>
         ${step.video ? `
-        <video class="cook-video" src="${step.video}" autoplay muted loop playsinline preload="metadata"></video>` : ""}
+        <video class="cook-video" src="${step.video}" ${REDUCED_MOTION ? 'controls' : 'autoplay loop'} muted playsinline preload="metadata" aria-label="Video demonstration: ${esc(step.title)}"></video>` : ""}
         ${step.use && step.use.length ? `
         <div class="cook-use">
           <div class="cook-use-label">You'll need</div>
@@ -763,7 +774,7 @@ function renderCook() {
   }
 
   overlayRoot.innerHTML = `
-  <div class="cook" role="dialog" aria-label="${esc(r.title)} cook-along">
+  <div class="cook" role="dialog" aria-modal="true" aria-label="${esc(r.title)} cook-along">
     <div class="cook-top">
       <button class="story-close" data-close-cook aria-label="Close recipe"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <span class="cook-title">${esc(r.title)}</span>
@@ -1112,7 +1123,7 @@ function openDough(id) {
   const d = DOUGH_RECIPES.find(x => x.id === id);
   if (!d) return;
   overlayRoot.innerHTML = `
-  <div class="cook" role="dialog" aria-label="${esc(d.name)} dough recipe">
+  <div class="cook" role="dialog" aria-modal="true" aria-label="${esc(d.name)} dough recipe">
     <div class="cook-top">
       <button class="story-close" data-close-dough aria-label="Close dough recipe"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <span class="cook-title">${esc(d.name)}</span>
@@ -1208,7 +1219,25 @@ function wirePasta() {
 function closeOverlays() {
   stopTimer();
   overlayRoot.innerHTML = "";
+  // Restore focus to where the user was before the overlay opened.
+  if (lastFocused && document.contains(lastFocused)) {
+    try { lastFocused.focus(); } catch (_) { /* noop */ }
+  }
+  lastFocused = null;
 }
+
+// Focus management: whenever an overlay renders, move focus to its close
+// button so keyboard and screen-reader users land inside the dialog.
+let lastFocused = null;
+const overlayObserver = new MutationObserver(() => {
+  const dialog = overlayRoot.querySelector('[role="dialog"]');
+  if (dialog) {
+    if (!lastFocused) lastFocused = document.activeElement;
+    const closeBtn = dialog.querySelector(".story-close, [data-close-cook], [data-close-dough]");
+    if (closeBtn && !dialog.contains(document.activeElement)) closeBtn.focus();
+  }
+});
+overlayObserver.observe(overlayRoot, { childList: true });
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && overlayRoot.innerHTML) {
@@ -1223,12 +1252,31 @@ window.addEventListener("load", () => {
   setTimeout(() => $("#splash").classList.add("gone"), 650);
 });
 
-// Service worker
+// Service worker — updateViaCache:"none" makes the browser always revalidate
+// sw.js itself, and an explicit update() check runs on every load so returning
+// visitors pick up new versions promptly instead of waiting on HTTP cache TTLs.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => { /* offline still optional */ });
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" })
+      .then(reg => { reg.update().catch(() => {}); })
+      .catch(() => { /* offline still optional */ });
   });
 }
 
-// First render
-render();
+// First render, wrapped in a visible error boundary so a failed boot never
+// leaves a silent blank screen.
+try {
+  render();
+} catch (err) {
+  console.error("Boot failed:", err);
+  app.innerHTML = `
+    <section class="section">
+      <div class="card" style="padding:24px;text-align:center">
+        <h2>Mamma mia, something broke.</h2>
+        <p class="hint">The app hit an error while starting. Try refreshing — if it keeps happening, clear the site data and reload.</p>
+        <button class="btn btn-primary" onclick="location.reload()">Reload</button>
+      </div>
+    </section>`;
+  const splash = $("#splash");
+  if (splash) splash.classList.add("gone");
+}

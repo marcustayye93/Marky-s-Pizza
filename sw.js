@@ -1,5 +1,11 @@
-/* Marco's Pizza Club — service worker */
-const VERSION = "mpc-v6";
+/* Marco's Pizza Club — service worker
+ *
+ * Release process: bumping VERSION forces a clean cache; but code/data updates
+ * no longer depend on it — JS/CSS/HTML use stale-while-revalidate, so returning
+ * visitors get new content on their next visit automatically. Media (images,
+ * video, fonts) stay cache-first for speed and offline use.
+ */
+const VERSION = "mpc-v7";
 const CORE = [
   "./",
   "./index.html",
@@ -12,8 +18,11 @@ const CORE = [
   "./js/data/builder.js",
   "./js/data/doughs.js",
   "./icons/icon-192.png",
+  "./icons/icon-384.png",
   "./icons/icon-512.png",
-  "./icons/favicon-48.png"
+  "./icons/favicon-48.png",
+  "./images/mascot-hero.jpg",
+  "./images/hero-margherita.jpg"
 ];
 
 self.addEventListener("install", e => {
@@ -30,6 +39,11 @@ self.addEventListener("activate", e => {
   );
 });
 
+function putCache(request, res) {
+  const copy = res.clone();
+  caches.open(VERSION).then(c => c.put(request, copy));
+}
+
 self.addEventListener("fetch", e => {
   const { request } = e;
   if (request.method !== "GET") return;
@@ -39,26 +53,36 @@ self.addEventListener("fetch", e => {
   if (request.mode === "navigate") {
     e.respondWith(
       fetch(request)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(VERSION).then(c => c.put("./index.html", copy));
-          return res;
-        })
+        .then(res => { putCache("./index.html", res); return res; })
         .catch(() => caches.match("./index.html"))
     );
     return;
   }
 
-  // Cache-first for same-origin static assets and images
+  const isCode = url.origin === location.origin &&
+    /\.(js|css|webmanifest|html)$/.test(url.pathname);
+
+  // Stale-while-revalidate for code & data: instant paint, fresh next visit
+  if (isCode) {
+    e.respondWith(
+      caches.match(request).then(hit => {
+        const net = fetch(request).then(res => {
+          if (res.ok) putCache(request, res);
+          return res;
+        }).catch(() => hit);
+        return hit || net;
+      })
+    );
+    return;
+  }
+
+  // Cache-first for same-origin media (images, video)
   if (url.origin === location.origin) {
     e.respondWith(
       caches.match(request).then(hit => {
         if (hit) return hit;
         return fetch(request).then(res => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(VERSION).then(c => c.put(request, copy));
-          }
+          if (res.ok) putCache(request, res);
           return res;
         });
       })
@@ -66,14 +90,11 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // Fonts etc: stale-while-revalidate
+  // Cross-origin (fonts etc): stale-while-revalidate
   e.respondWith(
     caches.match(request).then(hit => {
       const net = fetch(request).then(res => {
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(VERSION).then(c => c.put(request, copy));
-        }
+        if (res.ok) putCache(request, res);
         return res;
       }).catch(() => hit);
       return hit || net;

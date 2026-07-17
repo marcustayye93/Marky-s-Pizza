@@ -13,7 +13,7 @@ A playful, science-first Progressive Web App that teaches you to make excellent 
 | **Home** | Progress at a glance, Marco's daily tip, featured recipe |
 | **Pizza School** | 12 story-style lessons across 3 packs: Dough School, Sauce & Cheese, Oven Mastery — every slide illustrated with a real-food photo |
 | **Pizza Builder** | Compose a pizza and watch live flavour-balance meters, moisture warnings and Marco's pairing insights |
-| **Recipes** | 4 cook-along recipes with step-by-step navigation and built-in timers |
+| **Recipes** | 7 cook-along recipes (incl. lasagne) with per-step ingredients, numbered actions, oven-type adaptation (full-size vs combi microwave), timers, step videos and lesson deep-links |
 | **Dough Lab** | 5 experimental dough recipes with baker's percentages, timelines, crust-profile meters and the science of fermentation — headlined by a tribute to Casa Vostra's Newpolitan®-style crust |
 | **Bake Guide** | Home oven protocols (fan vs conventional), hardware ranked, doneness cues |
 | **Journal** | Log designs, bakes and notes; export as JSON |
@@ -29,6 +29,14 @@ Vintage 1930s rubber-hose cartoon branding (meet **Marco**, the club mascot) set
 - Hash-based routing, localStorage state
 - Service worker: offline-capable, versioned cache
 - Web App Manifest with maskable icons and app shortcuts
+
+## Release process
+
+Code, styles and data (`js/`, `css/`, `index.html`) are served **stale-while-revalidate** by the service worker — returning visitors automatically get updates on their next visit, no version bump required. Media (images, videos) is **cache-first** for speed and offline use. Bump `VERSION` in `sw.js` only to force-purge old caches (e.g., after renaming or removing assets). Before deploying, run:
+
+```bash
+python3 tools/audit-assets.py   # verifies every referenced image/video/icon exists
+```
 
 ## Develop locally
 
