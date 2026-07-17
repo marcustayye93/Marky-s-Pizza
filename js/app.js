@@ -125,7 +125,8 @@ function toast(msg) {
 }
 
 function lessonsDoneCount() {
-  return Object.keys(state.completedLessons).length;
+  // Pizza School only — pasta progress is counted separately by pastaLessonsDone()
+  return PACKS.reduce((n, p) => n + packDone(p), 0);
 }
 function packDone(pack) {
   return pack.lessons.filter(l => state.completedLessons[`${pack.id}/${l.id}`]).length;
@@ -517,7 +518,11 @@ function renderStory() {
     story = null;
     closeOverlays();
     if (target === "build") { location.hash = "#build"; }
-    else { location.hash = "#recipes"; setTimeout(() => openCook(target), 80); }
+    else {
+      // Pasta recipes live on the pasta tab; pizza-side recipes on the recipes tab
+      location.hash = findPastaRecipe(target) ? "#pasta" : "#recipes";
+      setTimeout(() => openCook(target), 80);
+    }
   });
   const remBtn = $("[data-remember]", overlayRoot);
   if (remBtn) remBtn.addEventListener("click", () => {
@@ -531,14 +536,17 @@ function renderStory() {
 
 function applyNudgeHtml() {
   if (!story) return "";
-  // Map pack → most relevant immediate application
+  // Map pack → most relevant immediate application (exact pack id match)
   const map = {
     dough: { target: "build", label: "Try dough choices in the Builder" },
     sauce: { target: "personal-margherita", label: "Cook it: Personal Margherita" },
-    oven: { target: "personal-margherita", label: "Bake one tonight" }
+    oven: { target: "personal-margherita", label: "Bake one tonight" },
+    "egg-flour": { target: "tagliatelle-butter-sage", label: "Cook it: Fresh Tagliatelle, Butter & Sage" },
+    "al-dente": { target: "cacio-e-pepe", label: "Cook it: Cacio e Pepe" },
+    "sauce-science": { target: "carbonara", label: "Cook it: Classic Carbonara" },
+    "squid-ink": { target: "squid-ink-tagliolini", label: "Cook it: Squid Ink Tagliolini" }
   };
-  const key = Object.keys(map).find(k => story.packId.includes(k));
-  const nudge = key ? map[key] : { target: "build", label: "Try this in the Builder" };
+  const nudge = map[story.packId] || { target: "build", label: "Try this in the Builder" };
   return `<button class="btn btn-secondary btn-block" data-apply-nudge="${nudge.target}">${esc(nudge.label)}</button>`;
 }
 
@@ -1921,7 +1929,16 @@ function viewPasta() {
     <div class="section-head">
       <div><h2>Pasta Recipes</h2><p>Cook-along mode, per-step ingredients, timers — pot on the stove, phone on the counter.</p></div>
     </div>
-    ${PASTA_RECIPES.map(r => `
+    ${[
+      { label: "Fresh dough", blurb: "Make the pasta itself — machine or rolling pin", ids: ["tagliatelle-butter-sage", "squid-ink-tagliolini"] },
+      { label: "Roman classics", blurb: "Pantry pasta, big technique", ids: ["carbonara", "cacio-e-pepe", "aglio-olio"] },
+      { label: "Seafood & ink", blurb: "The coast on a plate — no cheese allowed", ids: ["nero-spaghetti", "seafood-linguine"] },
+      { label: "Long-simmer & baked", blurb: "Sunday projects and weeknight comfort", ids: ["ragu", "bolognese", "lasagne-pasta"] },
+      { label: "From the same kitchen", blurb: "Not pasta, still Italian", ids: ["mushroom-soup"] }
+    ].map(g => `
+    <h3 class="pasta-group" style="margin:18px 0 2px">${g.label}</h3>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:14px">${g.blurb}</p>
+    ${g.ids.map(id => PASTA_RECIPES.find(r => r.id === id)).filter(Boolean).map(r => `
     <div class="card media-card" data-cook-pasta="${r.id}" role="button" tabindex="0" style="margin-bottom:14px">
       <img src="${r.image}" alt="${esc(r.title)}" loading="lazy" />
       <div class="media-copy">
@@ -1929,7 +1946,7 @@ function viewPasta() {
         <p>${esc(r.tagline)}</p>
         <div class="chips">${r.chips.map(c => `<span class="chip chip-terracotta">${esc(c)}</span>`).join("")}</div>
       </div>
-    </div>`).join("")}
+    </div>`).join("")}`).join("")}
   </section>`;
 }
 

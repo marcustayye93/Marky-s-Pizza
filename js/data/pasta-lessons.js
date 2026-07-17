@@ -223,7 +223,7 @@ export const PASTA_PACKS = [
             kicker: "The Black Gold · Lesson 4",
             title: "Blend it with the eggs",
             image: "./images/pasta/slide-ink-eggs.jpg",
-            body: "To make black dough, use about <strong>4 teaspoons (20 g) of ink for every 280 g of flour</strong>. The trick: blend the ink thoroughly with your eggs first, so the colour distributes evenly — no grey marbling.",
+            body: "To make black dough, use about <strong>20 g of ink (about 4 teaspoons) for every 280 g of flour</strong>. The trick: blend the ink thoroughly with your eggs first, so the colour distributes evenly — no grey marbling.",
             science: "<b>Why it works:</b> ink is water-based, so it disperses in the egg rather than the flour. Whisk until the mixture is uniformly black before it touches the flour and every strand comes out evenly jet-dark."
           },
           {

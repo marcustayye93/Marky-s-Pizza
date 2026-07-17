@@ -316,7 +316,7 @@ export const PASTA_RECIPES = [
     ingredients: [
       "280 g 00 flour",
       "2 whole eggs + 4 egg yolks",
-      "4 tsp (20 g) squid or cuttlefish ink",
+      "20 g squid or cuttlefish ink (about 4 tsp)",
       "12 large prawns, peeled and deveined",
       "10 cherry tomatoes, halved",
       "2 tbsp olive oil + 1 tbsp butter",
@@ -328,7 +328,7 @@ export const PASTA_RECIPES = [
     steps: [
       {
         title: "The black dough",
-        use: ["280 g 00 flour", "2 whole eggs + 4 yolks", "4 tsp (20 g) squid ink"],
+        use: ["280 g 00 flour", "2 whole eggs + 4 yolks", "20 g squid ink"],
         actions: [
           "In a bowl, whisk the whole eggs, yolks, and squid ink together until completely uniform and black.",
           "Mound the flour on the bench, make a well, and pour in the black egg mixture.",
@@ -387,7 +387,7 @@ export const PASTA_RECIPES = [
     ingredients: [
       "200 g dried spaghetti",
       "300 g fresh squid or cuttlefish, cleaned and cut into small rings",
-      "2 tsp (10 g) squid or cuttlefish ink (jar or sachet)",
+      "10 g squid or cuttlefish ink (about 2 tsp, jar or sachet)",
       "3 tbsp olive oil",
       "1 small onion, finely chopped",
       "1 garlic clove, minced",
@@ -409,7 +409,7 @@ export const PASTA_RECIPES = [
       },
       {
         title: "The ink sauce",
-        use: ["60 ml dry white wine", "2 tsp (10 g) squid ink", "100 ml fish stock or water"],
+        use: ["60 ml dry white wine", "10 g squid ink", "100 ml fish stock or water"],
         actions: [
           "Pour in the white wine and let it bubble until the alcohol smell dissipates.",
           "Lower the heat. Stir in the squid ink and the stock.",
@@ -484,7 +484,7 @@ export const PASTA_RECIPES = [
           "Transfer the linguine directly into the broth pan. Toss vigorously to emulsify the starchy water with the seafood juices.",
           "Return the clams and mussels to the pan, toss with fresh parsley, and serve immediately. Never add cheese!"
         ],
-        note: "Seriously — no cheese. Marco is watching.",
+        note: "No cheese here — it would mask the delicate shellfish broth. Trust the coast on this one.",
         minutes: 12,
         learn: { pack: "al-dente", lesson: "perfect-bite", slide: 1, label: "Finish in the pan" }
       }
@@ -617,7 +617,7 @@ export const PASTA_RECIPES = [
             "If the top needs more colour, finish with 3–4 minutes of grill.",
             "Let the lasagne rest for 10 minutes before slicing so the layers set."
           ],
-          note: "The CS89's combination mode is made for exactly this — faster middle, same golden top.",
+          note: "Timings are calibrated for a Panasonic CS89-class combi (230 °C convection max). Other models vary — watch the top and aim for a piping-hot centre (75–80 °C on a probe) before the grill finish.",
           minutes: 40
         }
       }
