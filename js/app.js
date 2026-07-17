@@ -96,7 +96,11 @@ function bakesLogged() {
 }
 function weekWins() {
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  return state.journal.filter(e => e.ts > weekAgo).length;
+  const recent = state.journal.filter(e => e.ts > weekAgo);
+  return {
+    bakes: recent.filter(e => e.type === "bake").length,
+    other: recent.filter(e => e.type !== "bake").length
+  };
 }
 const KITCHENS = {
   oven: { label: "Home oven", icon: "\uD83C\uDF73", hint: "Steel or stone, full heat" },
@@ -215,7 +219,7 @@ function viewHome() {
     <div class="card wins-card">
       <div>
         <h3 style="margin:0 0 4px">This week's pizza wins</h3>
-        <p>${wins === 0 ? "A quiet week so far \u2014 no pressure. Even one bake is a win in Marco's book." : wins === 1 ? "1 thing logged this week. Marco is quietly proud." : `${wins} things logged this week \u2014 Marco is telling the whole famiglia.`}</p>
+        <p>${wins.bakes === 0 && wins.other === 0 ? "A quiet week so far \u2014 no pressure. Even one bake is a win in Marco's book." : wins.bakes === 0 ? `${wins.other === 1 ? "1 note" : wins.other + " notes"} in the journal this week \u2014 thinking about pizza counts too.` : wins.bakes === 1 ? `1 pizza baked this week${wins.other ? ` (plus ${wins.other} journal ${wins.other === 1 ? "note" : "notes"})` : ""}. Marco is quietly proud.` : `${wins.bakes} pizzas baked this week \u2014 Marco is telling the whole famiglia.`}</p>
       </div>
       ${kit ? `<button class="kitchen-chip" data-change-kitchen title="Change kitchen">${kit.icon} ${esc(kit.label)}</button>` : `<button class="kitchen-chip" data-change-kitchen>Set up my kitchen</button>`}
     </div>
@@ -892,9 +896,9 @@ function renderCook() {
         <div class="log-form">
           <div class="log-label">How did it turn out?</div>
           <div class="rating-row" role="radiogroup" aria-label="Rate this bake">
-            <button class="rating-chip" data-rating="1">\uD83D\uDE48 Needs work</button>
-            <button class="rating-chip" data-rating="2">\uD83D\uDC4D Solid</button>
-            <button class="rating-chip" data-rating="3">\uD83D\uDE18 Chef's kiss</button>
+            <button class="rating-chip" role="radio" aria-checked="false" data-rating="1">\uD83D\uDE48 Needs work</button>
+            <button class="rating-chip" role="radio" aria-checked="false" data-rating="2">\uD83D\uDC4D Solid</button>
+            <button class="rating-chip" role="radio" aria-checked="false" data-rating="3">\uD83D\uDE18 Chef's kiss</button>
           </div>
           <label class="photo-btn">
             <input type="file" accept="image/*" id="bakePhoto" hidden />
@@ -969,10 +973,27 @@ function renderCook() {
   const modeLog = cook.mode === "combi" ? " (combi microwave)" : "";
   // Finish screen: rating chips, photo picker, note
   let pickedRating = 0, pickedPhoto = null;
-  $$(".rating-chip", overlayRoot).forEach(chip => chip.addEventListener("click", () => {
+  const ratingChips = $$(".rating-chip", overlayRoot);
+  const pickRating = chip => {
     pickedRating = parseInt(chip.dataset.rating, 10);
-    $$(".rating-chip", overlayRoot).forEach(c => c.classList.toggle("on", c === chip));
-  }));
+    ratingChips.forEach(c => {
+      const on = c === chip;
+      c.classList.toggle("on", on);
+      c.setAttribute("aria-checked", on ? "true" : "false");
+      c.tabIndex = on ? 0 : -1;
+    });
+  };
+  ratingChips.forEach((chip, ci) => {
+    chip.tabIndex = ci === 0 ? 0 : -1; // roving tabindex
+    chip.addEventListener("click", () => pickRating(chip));
+    chip.addEventListener("keydown", e => {
+      let target = null;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") target = ratingChips[(ci + 1) % ratingChips.length];
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") target = ratingChips[(ci - 1 + ratingChips.length) % ratingChips.length];
+      else if (e.key === " " || e.key === "Enter") { e.preventDefault(); pickRating(chip); return; }
+      if (target) { e.preventDefault(); target.focus(); pickRating(target); }
+    });
+  });
   const photoInput = $("#bakePhoto", overlayRoot);
   if (photoInput) photoInput.addEventListener("change", async () => {
     const f = photoInput.files && photoInput.files[0];
@@ -1497,6 +1518,13 @@ function calcNumbers() {
   };
 }
 
+function yeastHint(y) {
+  if (y <= 0.15) return "Marco's slow lane: this little yeast wants a long, cold nap — plan 24–72 h in the fridge for the flavour to bloom.";
+  if (y <= 0.35) return "The sweet spot for an overnight or next-day dough — mix tonight, bake tomorrow, look like a genius.";
+  if (y <= 0.6) return "Same-day territory: give it 4–6 h somewhere warm and it'll be ready by dinner.";
+  return "In a hurry, eh? This much yeast rises in 2–3 h — fine for tonight, but the flavour won't be as deep. Marco forgives you.";
+}
+
 function calcCaption(h) {
   if (h < 60) return "Firm and easy to handle — great for rolling pins and beginners.";
   if (h < 66) return "The friendly zone. Easy to stretch, hard to mess up.";
@@ -1523,12 +1551,12 @@ function viewCalc() {
         <button class="stepper-btn" data-calc-plus aria-label="More pizzas">+</button>
       </div>
 
-      <h3 class="builder-h">What size?</h3>
+      <h3 class="builder-h">How big are we talking?</h3>
       <div class="seg-row" data-calc-size>
         ${Object.entries(CALC_SIZES).map(([id, s]) => `<button class="seg ${calc.size === id ? "on" : ""}" data-id="${id}"><strong>${esc(s.label.split(" ")[0])}</strong><small>${esc(s.label.match(/\((.+)\)/)[1])} · ${s.grams} g ball</small></button>`).join("")}
       </div>
 
-      <h3 class="builder-h">What style?</h3>
+      <h3 class="builder-h">Which crust are you chasing?</h3>
       <div class="seg-row wrap" data-calc-style>
         ${Object.entries(CALC_STYLES).map(([id, s]) => `<button class="seg ${calc.style === id ? "on" : ""}" data-id="${id}"><strong>${esc(s.label)}</strong><small>${s.hydration}% water</small></button>`).join("")}
       </div>
@@ -1543,6 +1571,7 @@ function viewCalc() {
           <input type="range" min="1.5" max="3.5" step="0.1" value="${n.salt}" data-adv="salt" /></label>
         <label class="calc-slider"><span>Yeast (instant) <strong>${n.yeast}%</strong></span>
           <input type="range" min="0.05" max="1" step="0.05" value="${n.yeast}" data-adv="yeast" /></label>
+        <p class="hint yeast-hint" style="margin:4px 0 0">${esc(yeastHint(n.yeast))}</p>
       </div>` : ""}
     </div>
 
@@ -1559,7 +1588,7 @@ function viewCalc() {
           <tr><td><em>Total dough</em></td><td><em>${n.totalDough} g</em></td><td></td></tr>
         </tbody>
       </table>
-      <p class="hint" style="margin-top:10px">Mix → rest 20 min → knead or fold until smooth → ferment. For the full method, borrow the timeline from the closest Dough Lab recipe.</p>
+      <p class="hint" style="margin-top:10px">Marco's method in one breath: mix → rest 20 min → knead or fold until smooth → ferment. For the full step-by-step, borrow the timeline from the closest Dough Lab recipe.</p>
       <button class="btn btn-primary btn-block" data-calc-save style="margin-top:12px">Save this mix to my Journal</button>
     </div>
   </section>`;
@@ -1594,6 +1623,8 @@ function wireCalc() {
       rows[3].children[2].textContent = `${n.yeast}%`;
     }
     $(".calc-result .bal-caption").textContent = calcCaption(n.hydration);
+    const yh = $(".yeast-hint");
+    if (yh) yh.textContent = yeastHint(n.yeast);
   }));
   $("[data-calc-save]").addEventListener("click", () => {
     const n = calcNumbers();
@@ -1639,6 +1670,7 @@ let onboard = null; // { screen: 1|2|3 }
 
 function openOnboarding(screen = 1) {
   onboard = { screen };
+  try { sessionStorage.setItem("mpc-ob-screen", String(screen)); } catch (_) { /* private mode */ }
   renderOnboarding();
 }
 
@@ -1687,16 +1719,21 @@ function renderOnboarding() {
     state.onboarded = true;
     save();
     onboard = null;
+    try { sessionStorage.removeItem("mpc-ob-screen"); } catch (_) { /* noop */ }
     closeOverlays();
     if (thenDo) thenDo();
   };
+  const setScreen = sc => {
+    onboard.screen = sc;
+    try { sessionStorage.setItem("mpc-ob-screen", String(sc)); } catch (_) { /* private mode */ }
+    renderOnboarding();
+  };
   const nextB = $("[data-ob-next]", overlayRoot);
-  if (nextB) nextB.addEventListener("click", () => { onboard.screen = 2; renderOnboarding(); });
+  if (nextB) nextB.addEventListener("click", () => setScreen(2));
   $$("[data-ob-kitchen]", overlayRoot).forEach(b => b.addEventListener("click", () => {
     state.kitchen = b.dataset.obKitchen;
     save();
-    onboard.screen = 3;
-    renderOnboarding();
+    setScreen(3);
   }));
   const lessonB = $("[data-ob-lesson]", overlayRoot);
   if (lessonB) lessonB.addEventListener("click", () => finish(() => { location.hash = "#learn"; setTimeout(() => openStory(PACKS[0].id, PACKS[0].lessons[0].id), 80); }));
@@ -1736,6 +1773,20 @@ document.addEventListener("keydown", e => {
     if (onboard) { state.onboarded = true; save(); onboard = null; }
     story = null; cook = null;
     closeOverlays();
+  } else if (e.key === "Tab" && overlayRoot.innerHTML) {
+    // Focus trap: keep Tab cycling inside the open dialog (incl. onboarding).
+    const dialog = overlayRoot.querySelector('[role="dialog"]');
+    if (!dialog) return;
+    const focusables = Array.from(dialog.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )).filter(el => !el.disabled && el.offsetParent !== null);
+    if (!focusables.length) return;
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      e.preventDefault(); first.focus();
+    }
   } else if (story && e.key === "ArrowRight") advanceStory();
   else if (story && e.key === "ArrowLeft" && story.slideIdx > 0) { story.slideIdx--; renderStory(); }
 });
@@ -1760,7 +1811,12 @@ if ("serviceWorker" in navigator) {
 // leaves a silent blank screen.
 try {
   render();
-  if (!state.onboarded) setTimeout(() => openOnboarding(1), 900);
+  if (!state.onboarded) {
+    // Resume mid-tour if the tab was closed part-way through onboarding.
+    let resume = 1;
+    try { resume = parseInt(sessionStorage.getItem("mpc-ob-screen"), 10) || 1; } catch (_) { /* noop */ }
+    setTimeout(() => openOnboarding(Math.min(Math.max(resume, 1), 3)), 900);
+  }
 } catch (err) {
   console.error("Boot failed:", err);
   app.innerHTML = `
