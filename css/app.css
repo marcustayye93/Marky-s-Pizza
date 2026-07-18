@@ -1192,3 +1192,21 @@ main{flex:1;padding:22px 16px calc(118px + var(--safe-bottom));animation:page-in
   .world-chooser,.world-chooser.world-leave{animation:none}
   .world-panel img{transition:none}
 }
+
+/* ---- World switch button (topbar) ---- */
+.world-switch{
+  display:inline-flex;align-items:center;gap:6px;
+  min-height:42px;padding:0 14px;margin-left:auto;
+  border-radius:12px;
+  font-family:var(--font-display);font-size:13px;letter-spacing:.03em;
+  background:var(--butter);color:var(--ink);
+  border:var(--stroke-thin) solid var(--ink);
+  box-shadow:var(--pop-sm);
+  flex-shrink:0;
+  transition:transform .13s var(--ease-out),box-shadow .13s var(--ease-out);
+}
+.world-switch:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.world-switch svg{
+  width:19px;height:19px;flex-shrink:0;
+  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}

@@ -152,6 +152,7 @@ function render() {
   const route = currentRoute();
   handleDeepLink(route); // consume any share/deep-link params before drawing
   $("#pageTitle").textContent = TITLES[route];
+  updateWorldSwitch(route);
   $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.route === route));
   const views = { home: viewHome, learn: viewLearn, build: viewBuild, recipes: viewRecipes, bake: viewBake, journal: viewJournal, pasta: viewPasta, doughlab: viewDoughLab, calc: viewCalc };
   app.innerHTML = views[route]();
@@ -164,6 +165,24 @@ function render() {
 
 window.addEventListener("hashchange", render);
 $$(".nav-item").forEach(b => b.addEventListener("click", () => { location.hash = "#" + b.dataset.route; }));
+
+/* ---------------- World switch (topbar) ----------------
+   One clear button to hop between the pizza and pasta kitchens. */
+function updateWorldSwitch(route) {
+  const btn = $("#worldSwitch");
+  if (!btn) return;
+  const inPasta = route === "pasta";
+  btn.innerHTML = inPasta
+    ? `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="10" cy="10.2" r=".4"/><circle cx="14" cy="12.8" r=".4"/><circle cx="11.2" cy="14" r=".4"/></svg><span>Pizza</span>`
+    : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15c2.5-1 4-3.5 4-6"/><path d="M7.5 16.5C10 15.5 12 13 12 10"/><path d="M11 18c3-1 5-4 5-7"/><path d="M14.5 19.5C18 18.5 20 15 20 12"/><path d="M3 20c5 1.5 13 1.5 18-1"/></svg><span>Pasta</span>`;
+  btn.setAttribute("aria-label", inPasta ? "Switch to the pizza kitchen" : "Switch to the pasta kitchen");
+  btn.dataset.dest = inPasta ? "home" : "pasta";
+}
+$("#worldSwitch").addEventListener("click", () => {
+  const dest = $("#worldSwitch").dataset.dest || "pasta";
+  try { sessionStorage.setItem("mpc-world", dest === "pasta" ? "pasta" : "pizza"); } catch (e) {}
+  location.hash = "#" + dest;
+});
 
 /* ---------------- Share deep links ----------------
    Formats: #calc?p=2&s=m&st=newpolitan…  #build?sz=m&d=classic…  #recipes?cook=personal-margherita&from=Marcus */
