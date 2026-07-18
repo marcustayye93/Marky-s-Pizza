@@ -1210,3 +1210,33 @@ main{flex:1;padding:22px 16px calc(118px + var(--safe-bottom));animation:page-in
   width:19px;height:19px;flex-shrink:0;
   fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
 }
+
+/* ---- Lesson-done button hierarchy (dark story screen) ----
+   The primary action must be unmissable; the light secondary
+   buttons were visually drowning the terracotta primary. */
+.story-done .btn-primary{
+  background:var(--terracotta);
+  color:#FFF6E4;
+  border:var(--stroke-thin) solid var(--butter);
+  box-shadow:0 0 0 3px rgba(240,185,59,.35), 4px 4px 0 rgba(0,0,0,.55);
+  min-height:56px;
+  font-size:17px;
+  letter-spacing:.04em;
+}
+.story-done .btn-primary:active{
+  transform:translate(2px,2px);
+  box-shadow:0 0 0 3px rgba(240,185,59,.35), 0 0 0 rgba(0,0,0,.55);
+}
+.story-done .btn-secondary{
+  background:transparent;
+  color:#F6E9D2;
+  border:var(--stroke-thin) solid rgba(246,233,210,.55);
+  box-shadow:none;
+}
+.story-done .btn-secondary:active{transform:translate(1px,1px)}
+.story-done .btn-ghost{
+  color:rgba(246,233,210,.75);
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
