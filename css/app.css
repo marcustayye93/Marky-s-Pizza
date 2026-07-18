@@ -1125,3 +1125,70 @@ main{flex:1;padding:22px 16px calc(118px + var(--safe-bottom));animation:page-in
   box-shadow:inset 2px 2px 0 rgba(60,32,16,.07);
 }
 .ob-name input:focus{outline:3px solid var(--terracotta);outline-offset:1px}
+
+/* ---- World chooser (entry screen) ---- */
+.world-chooser{
+  position:fixed;inset:0;z-index:300;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  animation:fade-in .3s var(--ease-out) both;
+}
+.world-brand{
+  position:absolute;top:0;left:0;right:0;z-index:2;
+  display:flex;align-items:center;gap:10px;
+  padding:calc(14px + env(safe-area-inset-top,0px)) 18px 30px;
+  background:linear-gradient(to bottom, rgba(44,26,18,.55), rgba(44,26,18,0));
+  color:#FFF9EC;pointer-events:none;
+}
+.world-brand img{border-radius:10px;border:2px solid var(--ink);background:#fff}
+.world-brand span{font-family:var(--font-display);font-size:17px;letter-spacing:.02em}
+.world-brand em{margin-left:auto;font-style:italic;font-size:13.5px;opacity:.92}
+.world-panel{
+  position:relative;flex:1 1 50%;min-height:0;
+  display:block;width:100%;padding:0;margin:0;
+  border:0;background:none;cursor:pointer;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.world-panel + .world-panel{border-top:var(--stroke) solid var(--ink)}
+.world-panel img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;display:block;
+  transition:transform .5s var(--ease-out);
+}
+.world-panel:active img{transform:scale(1.03)}
+@media (hover:hover){ .world-panel:hover img{transform:scale(1.04)} }
+.world-panel::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(to top, rgba(44,26,18,.62) 0%, rgba(44,26,18,.12) 38%, rgba(44,26,18,0) 60%);
+  pointer-events:none;
+}
+.world-label{
+  position:absolute;left:20px;right:20px;bottom:18px;z-index:1;
+  display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+  text-align:left;color:#FFF9EC;pointer-events:none;
+}
+.world-label strong{
+  font-family:var(--font-display);font-weight:400;
+  font-size:36px;line-height:1.05;letter-spacing:.02em;
+  text-shadow:3px 3px 0 rgba(44,26,18,.85);
+}
+.world-label small{
+  font-size:14px;opacity:.94;font-weight:600;
+  text-shadow:1px 1px 0 rgba(44,26,18,.7);
+}
+.world-label::after{
+  content:"Tap to enter \2192";
+  margin-top:9px;font-size:11.5px;font-weight:800;
+  letter-spacing:.08em;text-transform:uppercase;
+  background:var(--terracotta);color:#FFF9EC;
+  border:2px solid var(--ink);border-radius:999px;
+  padding:6px 13px;box-shadow:2px 2px 0 var(--ink);
+}
+.world-chooser.world-leave{
+  animation:fade-in .32s var(--ease-out) reverse both;
+  pointer-events:none;
+}
+@media (prefers-reduced-motion: reduce){
+  .world-chooser,.world-chooser.world-leave{animation:none}
+  .world-panel img{transition:none}
+}

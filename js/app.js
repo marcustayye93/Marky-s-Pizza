@@ -2130,15 +2130,58 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+/* ---------------- World chooser (entry screen) ----------------
+   Pizza and pasta are equal citizens: every fresh session opens on a
+   full-screen chooser with two full-bleed 9:16-style photo panels. The
+   choice routes to the matching world; it never re-shows within a session. */
+function worldChooserPending() {
+  try { return !sessionStorage.getItem("mpc-world"); } catch (_) { return false; }
+}
+function openWorldChooser(afterChoice) {
+  const el = document.createElement("div");
+  el.className = "world-chooser";
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  el.setAttribute("aria-label", "Choose your kitchen");
+  el.innerHTML = `
+    <div class="world-brand">
+      <img src="./icons/favicon-48.png" alt="" width="32" height="32" />
+      <span>Marco&rsquo;s Club</span>
+      <em>Tonight we cook&hellip;</em>
+    </div>
+    <button class="world-panel" data-world="pizza" aria-label="Enter the pizza kitchen">
+      <img src="./images/chooser-pizza.jpg" alt="Wood-fired margherita pizza on a wooden board" fetchpriority="high" />
+      <span class="world-label"><strong>Pizza</strong><small>Dough, fire &amp; the perfect crust</small></span>
+    </button>
+    <button class="world-panel" data-world="pasta" aria-label="Enter the pasta kitchen">
+      <img src="./images/chooser-pasta.jpg" alt="Fresh egg tagliatelle and squid ink tagliolini nests" fetchpriority="high" />
+      <span class="world-label"><strong>Pasta</strong><small>Fresh dough, sauce &amp; black gold</small></span>
+    </button>`;
+  document.body.appendChild(el);
+  $$(".world-panel", el).forEach(btn => btn.addEventListener("click", () => {
+    const world = btn.dataset.world;
+    try { sessionStorage.setItem("mpc-world", world); } catch (_) { /* noop */ }
+    el.classList.add("world-leave");
+    location.hash = world === "pasta" ? "#pasta" : "#home";
+    setTimeout(() => { el.remove(); if (typeof afterChoice === "function") afterChoice(world); }, 380);
+  }));
+}
+
 // First render, wrapped in a visible error boundary so a failed boot never
 // leaves a silent blank screen.
 try {
   render();
-  if (!state.onboarded) {
+  const startTour = () => {
+    if (state.onboarded) return;
     // Resume mid-tour if the tab was closed part-way through onboarding.
     let resume = 1;
     try { resume = parseInt(sessionStorage.getItem("mpc-ob-screen"), 10) || 1; } catch (_) { /* noop */ }
-    setTimeout(() => openOnboarding(Math.min(Math.max(resume, 1), 3)), 900);
+    setTimeout(() => openOnboarding(Math.min(Math.max(resume, 1), 3)), 500);
+  };
+  if (worldChooserPending()) {
+    setTimeout(() => openWorldChooser(() => startTour()), 250);
+  } else {
+    startTour();
   }
 } catch (err) {
   console.error("Boot failed:", err);

@@ -7,7 +7,7 @@
  * On each release, also bump the ?b= query on css/js links in index.html so
  * the browser HTTP cache (independent of this SW) fetches fresh code too.
  */
-const VERSION = "mpc-v14";
+const VERSION = "mpc-v15";
 const CORE = [
   "./",
   "./index.html",
@@ -26,6 +26,8 @@ const CORE = [
   "./icons/icon-384.png",
   "./icons/icon-512.png",
   "./icons/favicon-48.png",
+  "./images/chooser-pizza.jpg",
+  "./images/chooser-pasta.jpg",
   "./images/mascot-hero.jpg",
   "./images/hero-margherita.jpg",
   "./images/pasta/pasta-hero.jpg"
