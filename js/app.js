@@ -2,19 +2,19 @@
 // Marco's Pizza Club — App controller
 // Vanilla ES modules, hash router, localStorage state.
 // ================================================================
-import { PACKS, TOTAL_LESSONS, findLesson } from "./data/lessons.js";
-import { RECIPES, findRecipe, OVEN_MODES } from "./data/recipes.js";
-import { PASTA_PACKS, TOTAL_PASTA_LESSONS, findPastaLesson } from "./data/pasta-lessons.js";
-import { PASTA_RECIPES, findPastaRecipe } from "./data/pasta-recipes.js";
+import { PACKS, TOTAL_LESSONS, findLesson } from "./data/lessons.js?b=19";
+import { RECIPES, findRecipe, OVEN_MODES } from "./data/recipes.js?b=19";
+import { PASTA_PACKS, TOTAL_PASTA_LESSONS, findPastaLesson } from "./data/pasta-lessons.js?b=19";
+import { PASTA_RECIPES, findPastaRecipe } from "./data/pasta-recipes.js?b=19";
 // Unified lookups across pizza + pasta content
 const findAnyLesson = (packId, lessonId) => findLesson(packId, lessonId) || findPastaLesson(packId, lessonId);
 const findAnyRecipe = id => findRecipe(id) || findPastaRecipe(id);
 import {
   SIZES, DOUGHS, SAUCES, CHEESES, TOPPINGS, COMBOS,
   SIZE_DEFAULT, DOUGH_DEFAULT, SAUCE_DEFAULT
-} from "./data/builder.js";
-import { DOUGHS as DOUGH_RECIPES } from "./data/doughs.js";
-import { makeBakeCard, shareCard, shareText, encodeParams, parseHashParams } from "./share.js";
+} from "./data/builder.js?b=19";
+import { DOUGHS as DOUGH_RECIPES } from "./data/doughs.js?b=19";
+import { makeBakeCard, shareCard, shareText, encodeParams, parseHashParams } from "./share.js?b=19";
 
 /* ---------------- State ---------------- */
 const STORE_KEY = "mpc-state";
@@ -403,7 +403,7 @@ function viewLearn() {
   return `
   <section class="section">
     <div class="section-head">
-      <div><h2>Pizza School</h2><p>Three packs, twelve lessons, zero soggy centres.</p></div>
+      <div><h2>Pizza School</h2><p>Three packs, thirteen lessons, zero soggy centres.</p></div>
     </div>
     ${PACKS.map(pack => {
       const done = packDone(pack);
@@ -496,6 +496,7 @@ function renderStory() {
             ${applyNudgeHtml()}
             <button class="btn btn-secondary btn-block" data-back-menu>Chapters</button>
             <button class="btn btn-ghost btn-block btn-sm" data-remember>Save a takeaway to my Journal</button>`}
+            <button class="btn btn-ghost btn-block btn-sm" data-back-slide>← Back to the lesson</button>
           </div>
         </div>` : `
         ${slide.image ? `<img src="${slide.image}" alt="" />` : ""}
@@ -504,7 +505,7 @@ function renderStory() {
         <p class="story-body">${slide.body}</p>
         ${slide.science ? `<div class="science-note">${slide.science}</div>` : ""}
       `}
-      ${!isDone ? `<button class="story-tap left" aria-label="Previous"></button><button class="story-tap right" aria-label="Next"></button>` : ""}
+      ${!isDone ? `<button class="story-tap left" aria-label="Previous"></button><button class="story-tap right" aria-label="Next"></button>` : `<button class="story-tap left" aria-label="Back to last slide"></button>`}
     </div>
   </div>`;
 
@@ -515,9 +516,14 @@ function renderStory() {
   });
   const backCook = $("[data-back-cook]", overlayRoot);
   if (backCook) backCook.addEventListener("click", () => { story = null; renderCook(); });
+  const backSlide = $("[data-back-slide]", overlayRoot);
+  if (backSlide) backSlide.addEventListener("click", () => { story.slideIdx = lesson.slides.length - 1; renderStory(); });
   const left = $(".story-tap.left", overlayRoot);
   const right = $(".story-tap.right", overlayRoot);
-  if (left) left.addEventListener("click", () => { if (story.slideIdx > 0) { story.slideIdx--; renderStory(); } });
+  if (left) left.addEventListener("click", () => {
+    if (story.slideIdx >= lesson.slides.length) { story.slideIdx = lesson.slides.length - 1; renderStory(); }
+    else if (story.slideIdx > 0) { story.slideIdx--; renderStory(); }
+  });
   if (right) right.addEventListener("click", advanceStory);
   const nextBtn = $("[data-next-lesson]", overlayRoot);
   if (nextBtn) nextBtn.addEventListener("click", () => {
@@ -2130,7 +2136,7 @@ document.addEventListener("keydown", e => {
       e.preventDefault(); first.focus();
     }
   } else if (story && e.key === "ArrowRight") advanceStory();
-  else if (story && e.key === "ArrowLeft" && story.slideIdx > 0) { story.slideIdx--; renderStory(); }
+  else if (story && e.key === "ArrowLeft" && story.slideIdx > 0) { story.slideIdx = Math.min(story.slideIdx - 1, (story.lesson ? story.lesson.slides.length - 1 : story.slideIdx - 1)); renderStory(); }
 });
 
 // Splash — hold Marco's welcome card for at least 1.5s from page start,

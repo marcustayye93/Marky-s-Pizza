@@ -290,27 +290,56 @@ export const PACKS = [
         ]
       },
       {
+        id: "preheat-combi",
+        title: "Normal vs Combi Ovens",
+        minutes: 3,
+        summary: "Preheating strategy changes depending on what box you're baking in.",
+        slides: [
+          {
+            kicker: "Oven Mastery · Lesson 2",
+            title: "The preheat lie",
+            image: "./images/slides/slide-oven-beep.jpg",
+            body: "Your oven beeps after 15 minutes to say it's at 250 °C. It is lying. The <em>air</em> is at 250 °C, but the walls and your baking steel are still cold. Opening the door dumps all that hot air, and you're back to square one. A true preheat is about <strong>saturating the metal</strong>.",
+            science: "<b>The science:</b> Air has terrible thermal mass. The energy that actually bakes your pizza comes from the radiant heat of the oven walls and the conductive heat of the steel/stone. Saturation takes 45–60 minutes, regardless of what the beep says."
+          },
+          {
+            kicker: "Oven Mastery · Lesson 2",
+            title: "Standard full-size ovens",
+            image: "./images/slides/slide-oven-preheat.jpg",
+            body: "A standard 60cm oven has a huge cavity to heat. Its superpower is that once the thick walls and your baking steel are finally saturated (after 45–60 minutes), they hold that heat tenaciously. You can open the door, launch your pizza, and the temperature barely flinches.",
+            science: "<b>The strategy:</b> Place your steel on the top shelf, set to maximum heat (fan/convection if available), and wait a full hour. When launching, work quickly, but trust the thermal mass."
+          },
+          {
+            kicker: "Oven Mastery · Lesson 2",
+            title: "Combi & multi-function ovens",
+            image: "./images/slides/slide-combi-oven.jpg",
+            body: "A combi microwave-oven (like the Panasonic CS89) is a different beast. The cavity is smaller, so it preheats much faster — the walls saturate in 20–30 minutes. But because the walls are thinner, it loses heat brutally fast when the door opens.",
+            science: "<b>The strategy:</b> Preheat your steel for 30 mins on Convection 230–250 °C. When you open the door to launch, the temperature will crash. You must launch <em>fast</em> — under 5 seconds — and shut the door to let the smaller cavity rebound."
+          }
+        ]
+      },
+      {
         id: "steel-stone",
         title: "Steel vs Stone",
         minutes: 3,
         summary: "The single best hardware upgrade for home pizza.",
         slides: [
           {
-            kicker: "Oven Mastery · Lesson 2",
+            kicker: "Oven Mastery · Lesson 3",
             title: "The upgrade that changes everything",
             image: "./images/bake-steel-oven.jpg",
             body: "If you buy one piece of pizza kit, make it a <strong>baking steel</strong> (6–10 mm thick). Second choice: a cordierite baking stone. Both transform a home oven; the steel just does it faster and harder.",
             science: "<b>The science:</b> steel conducts heat roughly <b>15× faster</b> than ceramic stone. At the same 250 °C, steel delivers energy into the dough so quickly that you get oven-spring and browning a stone can only dream of at home temperatures."
           },
           {
-            kicker: "Oven Mastery · Lesson 2",
+            kicker: "Oven Mastery · Lesson 3",
             title: "When stone still makes sense",
             image: "./images/slides/slide-baking-stone.jpg",
             body: "Steel is so aggressive that above ~290 °C it can scorch the base before the top finishes — which is why pizzerias with 450 °C ovens use stone. At home-oven temperatures (250–275 °C), steel wins almost every time. Stone remains a fine, cheaper, lighter option.",
             science: "<b>No steel? No stone?</b> Use a heavy cast-iron pan or an upturned thick baking tray, preheated just as long. Thermal mass is the goal; the material is negotiable."
           },
           {
-            kicker: "Oven Mastery · Lesson 2",
+            kicker: "Oven Mastery · Lesson 3",
             title: "Care and feeding",
             image: "./images/slides/slide-steel-care.jpg",
             body: "A steel needs the same love as cast iron: dry it after wiping, rub with a whisper of neutral oil, and let it build a dark patina — that's seasoning, not dirt. Never wash a hot stone with cold water unless you enjoy the sound of cracking ceramic.",
@@ -325,21 +354,21 @@ export const PACKS = [
         summary: "Peel technique: the 10 seconds that make or break a pizza.",
         slides: [
           {
-            kicker: "Oven Mastery · Lesson 3",
+            kicker: "Oven Mastery · Lesson 4",
             title: "Fear of the launch is normal",
             image: "./images/slides/slide-peel-ready.jpg",
             body: "Every home pizzaiolo has lived the nightmare: the confident flick, the pizza that stays glued to the peel, toppings avalanching onto glowing steel. Breathe. The launch is pure technique, and technique can be learned in three moves.",
             science: "<b>Move 1 — Work fast:</b> dough sitting on a peel is actively gluing itself down. From \"dough lands on peel\" to \"launch\" should be under <b>2 minutes</b>. Top the pizza on the peel, not the counter."
           },
           {
-            kicker: "Oven Mastery · Lesson 3",
+            kicker: "Oven Mastery · Lesson 4",
             title: "The shake test",
             image: "./images/slides/slide-peel-shake.jpg",
             body: "Before you open the oven, give the peel a gentle jiggle. The pizza should slide freely, like a puck on ice. If it sticks, lift the edge and blow a puff of air underneath, or tuck a pinch of semolina under the stuck spot. <strong>Never launch a stuck pizza.</strong>",
             science: "<b>Move 2 — Semolina bearings:</b> a light, even dusting under the dough. Too much burns; too little grips. You want the dough floating on a layer of rolling grains."
           },
           {
-            kicker: "Oven Mastery · Lesson 3",
+            kicker: "Oven Mastery · Lesson 4",
             title: "Commit like a pizzaiolo",
             image: "./images/slides/slide-launch-action.jpg",
             body: "Angle the peel down onto the far edge of the steel, then pull back with one smooth, confident stroke — like pulling a tablecloth from under dishes. Hesitation folds pizzas; commitment lands them. Close the door fast. You've got this.",
@@ -354,21 +383,21 @@ export const PACKS = [
         summary: "Colour, char and structure: when to pull it out.",
         slides: [
           {
-            kicker: "Oven Mastery · Lesson 4",
+            kicker: "Oven Mastery · Lesson 5",
             title: "Ignore the clock, read the pizza",
             image: "./images/slides/slide-oven-window.jpg",
             body: "Recipes say \"6–8 minutes\", but ovens lie and steels vary. Learn to read the pizza itself. Three signals: <strong>rim colour</strong>, <strong>cheese behaviour</strong>, and <strong>base check</strong>.",
             science: "<b>Signal 1 — The rim:</b> deep golden brown with scattered dark spots (leoparding). Uniform pale = underbaked. Uniform black = your steel is too close to the grill."
           },
           {
-            kicker: "Oven Mastery · Lesson 4",
+            kicker: "Oven Mastery · Lesson 5",
             title: "Cheese tells the truth",
             image: "./images/slides/slide-cheese-bubbling.jpg",
             body: "Perfect cheese is fully melted, bubbling at the edges of each pool, with the first golden-brown patches just appearing. If the cheese is browning everywhere but the rim is pale, drop the rack lower next time. If the rim is dark and the cheese looks raw, raise it.",
             science: "<b>Signal 2 — Bubbles:</b> steady lazy bubbling means moisture is done evaporating. Furious spitting means there's still too much water — often a sign of undrained fresh mozzarella."
           },
           {
-            kicker: "Oven Mastery · Lesson 4",
+            kicker: "Oven Mastery · Lesson 5",
             title: "The lift test",
             image: "./images/slides/slide-lift-test.jpg",
             body: "Slide a spatula under the centre and lift. A finished pizza holds a <strong>gentle arc</strong> — firm at the rim with a slight, elegant droop at the tip. A floppy fold-in-half means an underdone centre; a rigid cracker means you left it too long. Aim for the arc. Then slice, admire, and log it in your Journal.",
