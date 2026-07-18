@@ -2114,9 +2114,13 @@ document.addEventListener("keydown", e => {
   else if (story && e.key === "ArrowLeft" && story.slideIdx > 0) { story.slideIdx--; renderStory(); }
 });
 
-// Splash
+// Splash — hold Marco's welcome card for at least 1.5s from page start,
+// measured against navigation start so fast loads still get the full beat.
 window.addEventListener("load", () => {
-  setTimeout(() => $("#splash").classList.add("gone"), 650);
+  const SPLASH_MIN = 1500;
+  const elapsed = performance.now();
+  const wait = Math.max(SPLASH_MIN - elapsed, 120);
+  setTimeout(() => $("#splash").classList.add("gone"), wait);
 });
 
 // Service worker — updateViaCache:"none" makes the browser always revalidate
